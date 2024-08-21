@@ -7,6 +7,7 @@ export default function ListPage() {
         content: "This is the content of the first post stored on a decentralized network.",
         image: "https://via.placeholder.com/150",
         likes: 12,
+        walletAddress: "0xAbc123...def456"
       },
       {
         id: 2,
@@ -15,6 +16,7 @@ export default function ListPage() {
         content: "Web3 social platforms are changing how we interact online. Here's how...",
         image: "https://via.placeholder.com/150",
         likes: 34,
+        walletAddress: "0xDef456...ghi789"
       },
       {
         id: 3,
@@ -23,6 +25,7 @@ export default function ListPage() {
         content: "Today we released some new features that enhance user experience...",
         image: "https://via.placeholder.com/150",
         likes: 20,
+        walletAddress: "0xGhi789...jkl012"
       },
     ];
   
@@ -32,16 +35,12 @@ export default function ListPage() {
         <div className="space-y-6">
           {mockPosts.map(post => (
             <div key={post.id} className="bg-white p-6 rounded shadow">
-              <h2 className="text-2xl font-bold mb-2">{post.title}</h2>
-              <p className="text-gray-500 text-sm mb-4">{post.time}</p>
-              <img src={post.image} alt={post.title} className="w-full h-auto mb-4 rounded" />
-              <p className="mb-4">{post.content}</p>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">{post.likes} Likes</span>
-                <button className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-400">
-                  Like
-                </button>
-              </div>
+              <h2 className="text-xl font-bold">{post.title}</h2>
+              <p>{post.time}</p>
+              <p>Creator: {post.walletAddress}</p>
+              <img src={post.image} alt={post.title} className="my-4" />
+              <p>{post.content}</p>
+              <p>Likes: {post.likes}</p>
             </div>
           ))}
         </div>
