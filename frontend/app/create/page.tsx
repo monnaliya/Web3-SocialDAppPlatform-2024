@@ -6,18 +6,17 @@ export default function CreatePage() {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [image, setImage] = useState('');
-  const [likes, setLikes] = useState(0);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const time = new Date().toISOString(); // Generate the current timestamp
+    const likes = 0; // Initialize likes to 0
     // Handle the form submission logic here
     console.log({ title, time, content, image, likes });
     // Reset form after submission
     setTitle('');
     setContent('');
     setImage('');
-    setLikes(0);
   };
 
   return (
@@ -53,17 +52,6 @@ export default function CreatePage() {
             value={image}
             onChange={(e) => setImage(e.target.value)}
             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Likes</label>
-          <input
-            type="number"
-            value={likes}
-            onChange={(e) => setLikes(Number(e.target.value))}
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-            min="0"
           />
         </div>
 
