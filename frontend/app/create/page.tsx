@@ -4,18 +4,17 @@ import { useState } from 'react';
 
 export default function CreatePage() {
   const [title, setTitle] = useState('');
-  const [time, setTime] = useState('');
   const [content, setContent] = useState('');
   const [image, setImage] = useState('');
   const [likes, setLikes] = useState(0);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const time = new Date().toISOString(); // Generate the current timestamp
     // Handle the form submission logic here
     console.log({ title, time, content, image, likes });
     // Reset form after submission
     setTitle('');
-    setTime('');
     setContent('');
     setImage('');
     setLikes(0);
@@ -31,17 +30,6 @@ export default function CreatePage() {
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-            required
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Time</label>
-          <input
-            type="datetime-local"
-            value={time}
-            onChange={(e) => setTime(e.target.value)}
             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
             required
           />
