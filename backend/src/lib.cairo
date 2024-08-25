@@ -9,33 +9,42 @@ struct User {
     registered: bool,
 }
 
+#[derive(Drop, Serde, starknet::Store)]
+struct Post {
+    id: u64,
+    author: ContractAddress,
+    content: felt252,
+    timestamp: u64,
+}
+
 #[starknet::interface]
 trait IUserRegistry<TContractState> {
-    fn register_user(
-        ref self: TContractState,
-        username: felt252,
-        email: felt252,
-        bio: felt252
-    );
+    fn register_user(ref self: TContractState, username: felt252, email: felt252, bio: felt252);
     fn get_user(self: @TContractState, address: ContractAddress) -> User;
     fn update_bio(ref self: TContractState, new_bio: felt252);
     fn is_registered(self: @TContractState, address: ContractAddress) -> bool;
+    fn create_post(ref self: TContractState, content: felt252) -> u64;
+    fn get_post(self: @TContractState, post_id: u64) -> Post;
 }
 
 #[starknet::contract]
 mod UserRegistry {
-    use super::{ContractAddress, User};
+    use super::{ContractAddress, User, Post, IUserRegistry};
     use starknet::get_caller_address;
+    use starknet::get_block_timestamp;
 
     #[storage]
     struct Storage {
         users: LegacyMap::<ContractAddress, User>,
+        posts: LegacyMap::<u64, Post>,
+        next_post_id: u64,
     }
 
     #[event]
     #[derive(Drop, starknet::Event)]
     enum Event {
         UserRegistered: UserRegistered,
+        PostCreated: PostCreated,
     }
 
     #[derive(Drop, starknet::Event)]
@@ -44,19 +53,20 @@ mod UserRegistry {
         username: felt252,
     }
 
+    #[derive(Drop, starknet::Event)]
+    struct PostCreated {
+        post_id: u64,
+        author: ContractAddress,
+    }
+
     #[constructor]
     fn constructor(ref self: ContractState) {
-        // Initialize contract if needed
+        self.next_post_id.write(1);
     }
 
     #[abi(embed_v0)]
-    impl UserRegistryImpl of super::IUserRegistry<ContractState> {
-        fn register_user(
-            ref self: ContractState,
-            username: felt252,
-            email: felt252,
-            bio: felt252
-        ) {
+    impl UserRegistryImpl of IUserRegistry<ContractState> {
+        fn register_user(ref self: ContractState, username: felt252, email: felt252, bio: felt252) {
             let caller = get_caller_address();
             assert(!self.users.read(caller).registered, 'User already registered');
 
@@ -88,6 +98,30 @@ mod UserRegistry {
 
         fn is_registered(self: @ContractState, address: ContractAddress) -> bool {
             self.users.read(address).registered
+        }
+
+        fn create_post(ref self: ContractState, content: felt252) -> u64 {
+            let caller = get_caller_address();
+            assert(self.users.read(caller).registered, 'User not registered');
+
+            let post_id = self.next_post_id.read();
+            let new_post = Post {
+                id: post_id,
+                author: caller,
+                content: content,
+                timestamp: get_block_timestamp(),
+            };
+            self.posts.write(post_id, new_post);
+            self.next_post_id.write(post_id + 1);
+
+            self.emit(Event::PostCreated(PostCreated { post_id: post_id, author: caller }));
+            post_id
+        }
+
+        fn get_post(self: @ContractState, post_id: u64) -> Post {
+            let post = self.posts.read(post_id);
+            assert(post.id != 0, 'Post not found');
+            post
         }
     }
 }
