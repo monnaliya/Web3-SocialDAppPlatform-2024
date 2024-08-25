@@ -14,7 +14,7 @@ struct Post {
     id: u64,
     title: felt252,
     content: felt252,
-    image: felt252,
+    image_url: felt252,
     author: ContractAddress,
     timestamp: u64,
     likes: u64,
@@ -26,7 +26,7 @@ trait IUserRegistry<TContractState> {
     fn get_user(self: @TContractState, address: ContractAddress) -> User;
     fn update_bio(ref self: TContractState, new_bio: felt252);
     fn is_registered(self: @TContractState, address: ContractAddress) -> bool;
-    fn create_post(ref self: TContractState, title: felt252, content: felt252, image: felt252) -> u64;
+    fn create_post(ref self: TContractState, title: felt252, content: felt252, image_url: felt252) -> u64;
     fn get_post(self: @TContractState, post_id: u64) -> Post;
     fn get_posts(self: @TContractState) -> Array<Post>;
     fn like_post(ref self: TContractState, post_id: u64);
@@ -105,7 +105,7 @@ mod UserRegistry {
             self.users.read(address).registered
         }
 
-        fn create_post(ref self: ContractState, title: felt252, content: felt252, image: felt252) -> u64 {
+        fn create_post(ref self: ContractState, title: felt252, content: felt252, image_url: felt252) -> u64 {
             let caller = get_caller_address();
             assert(self.users.read(caller).registered, 'User not registered');
 
@@ -114,7 +114,7 @@ mod UserRegistry {
                 id: post_id,
                 title: title,
                 content: content,
-                image: image,
+                image_url: image_url,
                 author: caller,
                 timestamp: get_block_timestamp(),
                 likes: 0,
