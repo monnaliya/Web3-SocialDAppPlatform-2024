@@ -12,9 +12,12 @@ struct User {
 #[derive(Drop, Serde, starknet::Store)]
 struct Post {
     id: u64,
-    author: ContractAddress,
+    title: felt252,
     content: felt252,
+    image: felt252,
+    author: ContractAddress,
     timestamp: u64,
+    likes: u64,
 }
 
 #[starknet::interface]
@@ -23,8 +26,10 @@ trait IUserRegistry<TContractState> {
     fn get_user(self: @TContractState, address: ContractAddress) -> User;
     fn update_bio(ref self: TContractState, new_bio: felt252);
     fn is_registered(self: @TContractState, address: ContractAddress) -> bool;
-    fn create_post(ref self: TContractState, content: felt252) -> u64;
+    fn create_post(ref self: TContractState, title: felt252, content: felt252, image: felt252) -> u64;
     fn get_post(self: @TContractState, post_id: u64) -> Post;
+    fn get_posts(self: @TContractState) -> Array<Post>;
+    fn like_post(ref self: TContractState, post_id: u64);
 }
 
 #[starknet::contract]
@@ -100,16 +105,19 @@ mod UserRegistry {
             self.users.read(address).registered
         }
 
-        fn create_post(ref self: ContractState, content: felt252) -> u64 {
+        fn create_post(ref self: ContractState, title: felt252, content: felt252, image: felt252) -> u64 {
             let caller = get_caller_address();
             assert(self.users.read(caller).registered, 'User not registered');
 
             let post_id = self.next_post_id.read();
             let new_post = Post {
                 id: post_id,
-                author: caller,
+                title: title,
                 content: content,
+                image: image,
+                author: caller,
                 timestamp: get_block_timestamp(),
+                likes: 0,
             };
             self.posts.write(post_id, new_post);
             self.next_post_id.write(post_id + 1);
@@ -122,6 +130,29 @@ mod UserRegistry {
             let post = self.posts.read(post_id);
             assert(post.id != 0, 'Post not found');
             post
+        }
+
+        fn get_posts(self: @ContractState) -> Array<Post> {
+            let mut posts = ArrayTrait::new();
+            let mut i = 1;
+            loop {
+                if i >= self.next_post_id.read() {
+                    break;
+                }
+                let post = self.posts.read(i);
+                if post.id != 0 {
+                    posts.append(post);
+                }
+                i += 1;
+            };
+            posts
+        }
+
+        fn like_post(ref self: ContractState, post_id: u64) {
+            let mut post = self.posts.read(post_id);
+            assert(post.id != 0, 'Post not found');
+            post.likes += 1;
+            self.posts.write(post_id, post);
         }
     }
 }
