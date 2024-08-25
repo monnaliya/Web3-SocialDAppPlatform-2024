@@ -7,7 +7,7 @@ interface Post {
   id: number;
   title: string;
   content: string;
-  image: string;
+  imageUrl: string;
   likes: number;
   timestamp: number;
   author: string;
@@ -40,7 +40,7 @@ export default function ListPage() {
         title: "First Decentralized Post",
         timestamp: "2024-08-21 10:00 UTC",
         content: "This is the content of the first post stored on a decentralized network.",
-        image: "https://via.placeholder.com/150",
+        imageUrl: "https://via.placeholder.com/150",
         likes: 12,
         author: 'xx',
         authorDID: "0xAbc123...def456"
@@ -50,7 +50,7 @@ export default function ListPage() {
         title: "Exploring Web3 Social Platforms",
         timestamp: "2024-08-22 14:30 UTC",
         content: "Web3 social platforms are changing how we interact online. Here's how...",
-        image: "https://via.placeholder.com/150",
+        imageUrl: "https://via.placeholder.com/150",
         likes: 34,
         author: 'xx',
         authorDID: "0xDef456...ghi789"
@@ -60,7 +60,7 @@ export default function ListPage() {
         title: "New Features in Web3-SocialDAppPlatform-2024",
         timestamp: "2024-08-23 09:45 UTC",
         content: "Today we released some new features that enhance user experience...",
-        image: "https://via.placeholder.com/150",
+        imageUrl: "https://via.placeholder.com/150",
         likes: 20,
         author: 'xx',
         authorDID: "0xGhi789...jkl012"
@@ -87,7 +87,7 @@ export default function ListPage() {
           {mockPosts.map((post, index) => (
             <div key={post.id} className="bg-white p-6 rounded shadow">
               <h2 className="text-xl font-bold">{post.title}</h2>
-              {post.image && <img src={post.image} alt={post.title} className="w-full mb-2" />}
+              {post.imageUrl && <img src={post.imageUrl} alt={post.title} className="w-full mb-2" />}
               <p className="text-gray-800 mb-2">{post.content}</p>
               <p className="text-sm text-gray-500">Posted by: {post.author}</p>
               <p className="text-sm text-gray-500">DID: {post.authorDID}</p>

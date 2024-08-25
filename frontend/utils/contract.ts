@@ -8,9 +8,9 @@ export function getContract(provider: Provider) {
   return new Contract(CONTRACT_ABI, CONTRACT_ADDRESS, provider);
 }
 
-export async function createPost(provider: Provider, title: string, content: string, image: string) {
+export async function createPost(provider: Provider, title: string, content: string, imageUrl: string) {
     const contract = getContract(provider);
-    const result = await contract.create_post(title, content, image);
+    const result = await contract.create_post(title, content, imageUrl);
     return result;
 }
 
