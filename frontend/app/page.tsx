@@ -5,14 +5,19 @@ import { useRouter } from 'next/navigation';
 import { useConnect, useDisconnect, useAccount } from "@starknet-react/core";
 
 export default function Home() {
-  const { connect } = useConnect();
+  const { connect, connectors } = useConnect();
   const { disconnect } = useDisconnect();
   const { address, isConnected } = useAccount();
   const router = useRouter();
 
   const connectWallet = async () => {
     try {
-      await connect();
+      const availableConnector = connectors.find((c) => c.available());
+      if (availableConnector) {
+        await connect({ connector: availableConnector });
+      } else {
+        console.error("No available connectors");
+      }
     } catch (error) {
       console.error("Error connecting wallet:", error);
     }

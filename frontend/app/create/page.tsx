@@ -2,27 +2,31 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useProvider, useAccount } from "@starknet-react/core";
+import { createPost } from '../../utils/contract';
 
 export default function CreatePage() {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [image, setImage] = useState('');
   const router = useRouter(); // Initialize the router
+  const { provider } = useProvider();
+  const { address } = useAccount();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const time = new Date().toISOString(); // Generate the current timestamp
-    const likes = 0; // Initialize likes to 0
-    // Handle the form submission logic here
-    console.log({ title, time, content, image, likes });
 
-    // Reset form after submission
-    setTitle('');
-    setContent('');
-    setImage('');
-
-    // Navigate back to the list page
-    router.push('/list');
+    if (!provider || !address) {
+      console.error("Wallet not connected");
+      return;
+    }
+    try {
+      await createPost(provider, title, content, image);
+      // Navigate back to the list page
+      router.push('/list');
+    } catch (error) {
+      console.error("Error creating post:", error);
+    }
   };
 
   return (
