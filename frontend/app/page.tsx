@@ -2,22 +2,27 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useConnect, useDisconnect, useAccount } from "@starknet-react/core";
 
 export default function Home() {
-  const [walletConnected, setWalletConnected] = useState(false);
+  const { connect } = useConnect();
+  const { disconnect } = useDisconnect();
+  const { address, isConnected } = useAccount();
   const router = useRouter();
 
   const connectWallet = async () => {
-    // Wallet connection logic (MetaMask example)
-    if (window.ethereum) {
-      try {
-        await window.ethereum.request({ method: 'eth_requestAccounts' });
-        setWalletConnected(true);
-      } catch (error) {
-        console.error("Wallet connection failed:", error);
-      }
-    } else {
-      alert("Please install MetaMask!");
+    try {
+      await connect();
+    } catch (error) {
+      console.error("Error connecting wallet:", error);
+    }
+  };
+
+  const disconnectWallet = async () => {
+    try {
+      await disconnect();
+    } catch (error) {
+      console.error("Error disconnecting wallet:", error);
     }
   };
 
@@ -29,10 +34,10 @@ export default function Home() {
     <div className="flex flex-col h-screen">
       <header className="flex justify-end p-4">
         <button
-          onClick={connectWallet}
+          onClick={isConnected ? disconnectWallet : connectWallet}
           className="bg-blue-500 text-white py-2 px-4 rounded"
         >
-          {walletConnected ? "Wallet Connected" : "Connect Wallet"}
+          {isConnected ? `Disconnect ${address?.slice(0,6)}...` : "Connect Wallet"}
         </button>
       </header>
 
