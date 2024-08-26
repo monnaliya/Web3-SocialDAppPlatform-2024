@@ -24,6 +24,7 @@ export default function CreatePage() {
       return;
     }
     try {
+      const imageUrl = file ? await uploadToIPFS(file) : null;
       await createPost(provider, title, content, imageUrl || '');
       router.push('/list');
     } catch (error) {

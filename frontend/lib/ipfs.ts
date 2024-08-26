@@ -1,16 +1,34 @@
 // lib/ipfs.ts
 
-import { create } from 'ipfs-http-client';
+import axios from 'axios';
+import FormData from 'form-data';
 
-const projectId = process.env.INFURA_PROJECT_ID; // Replace with your Infura Project ID
-const projectSecret = process.env.INFURA_PROJECT_SECRET; // Replace with your Infura Project Secret
-const auth = 'Basic ' + Buffer.from(projectId + ':' + projectSecret).toString('base64');
+const PINATA_JWT = process.env.NEXT_PUBLIC_PINATA_JWT;
 
-export const ipfsClient = create({
-  host: 'ipfs.infura.io',
-  port: 5001,
-  protocol: 'https',
-  headers: {
-    authorization: auth,
-  },
-});
+if (!PINATA_JWT) {
+  throw new Error('PINATA_JWT is not defined in environment variables');
+}
+
+export const pinFileToIPFS = async (file: File) => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const pinataMetadata = JSON.stringify({
+    name: file.name,
+  });
+  formData.append('pinataMetadata', pinataMetadata);
+
+  try {
+    const res = await axios.post("https://api.pinata.cloud/pinning/pinFileToIPFS", formData, {
+      maxBodyLength: Infinity,
+      headers: {
+        Authorization: `Bearer ${PINATA_JWT}`
+      }
+    });
+    console.log(res.data);
+    return `https://gateway.pinata.cloud/ipfs/${res.data.IpfsHash}`;
+  } catch (error) {
+    console.error('Error uploading file to Pinata:', error);
+    throw error;
+  }
+};

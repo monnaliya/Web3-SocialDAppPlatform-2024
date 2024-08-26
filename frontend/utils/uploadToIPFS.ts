@@ -1,12 +1,12 @@
 // utils/uploadToIPFS.ts
 
-import { ipfsClient } from '../lib/ipfs';
+import { pinFileToIPFS } from '../lib/ipfs';
 
 export async function uploadToIPFS(file: File): Promise<string> {
   try {
-    const added = await ipfsClient.add(file);
-    const url = `https://ipfs.infura.io/ipfs/${added.path}`;
-    return url;
+    const ipfsUrl = await pinFileToIPFS(file);
+    console.log('File uploaded to IPFS:', ipfsUrl);
+    return ipfsUrl;
   } catch (error) {
     console.error('Error uploading file to IPFS:', error);
     throw error;
