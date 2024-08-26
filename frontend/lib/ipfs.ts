@@ -1,3 +1,5 @@
+// lib/ipfs.ts
+
 import { create } from 'ipfs-http-client';
 
 const projectId = process.env.INFURA_PROJECT_ID; // Replace with your Infura Project ID

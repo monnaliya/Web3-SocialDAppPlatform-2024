@@ -1,3 +1,5 @@
+// app/create/page.tsx
+
 "use client";
 
 import React, { useState } from 'react';
@@ -9,21 +11,20 @@ import { uploadToIPFS } from '../../utils/uploadToIPFS';
 export default function CreatePage() {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const router = useRouter(); // Initialize the router
+  const router = useRouter();
   const { provider } = useProvider();
-  const { address } = useAccount();
+  const { address, isConnected } = useAccount();
   const [imageUrl, setImageUrl] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!provider || !address) {
+    if (!provider || !isConnected) {
       console.error("Wallet not connected");
       return;
     }
     try {
-      await createPost(provider, title, content, imageUrl);
-      // Navigate back to the list page
+      await createPost(provider, title, content, imageUrl || '');
       router.push('/list');
     } catch (error) {
       console.error("Error creating post:", error);
@@ -68,11 +69,19 @@ export default function CreatePage() {
           />
         </div>
 
-        <input type="file" onChange={handleFileUpload} />
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Image</label>
+          <input 
+            type="file" 
+            onChange={handleFileUpload}
+            className="mt-1 block w-full"
+          />
+        </div>
+
         {imageUrl && (
           <div>
             <p>File uploaded to IPFS:</p>
-            <a href={imageUrl} target="_blank" rel="noopener noreferrer">
+            <a href={imageUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
               {imageUrl}
             </a>
           </div>

@@ -1,8 +1,12 @@
+// app/list/page.tsx
+
 "use client";
+
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useProvider, useAccount } from "@starknet-react/core";
-import { getPosts, likePost } from '../../utils/contract';
+import { getPosts, likePost, getComments, addComment } from '../../utils/contract';
+
 interface Post {
   id: number;
   title: string;
@@ -11,104 +15,129 @@ interface Post {
   likes: number;
   timestamp: number;
   author: string;
-  authorDID: string;
+}
+
+interface Comment {
+  id: number;
+  postId: number;
+  author: string;
+  content: string;
+  timestamp: number;
 }
 
 export default function ListPage() {
-    const [posts, setPosts] = useState<Post[]>([]);
-    const { provider } = useProvider();
-    const { address } = useAccount();
+  const [posts, setPosts] = useState<Post[]>([]);
+  const { provider } = useProvider();
+  const { address, isConnected } = useAccount();
+  const [comments, setComments] = useState<{ [postId: number]: Comment[] }>({});
+  const [newComments, setNewComments] = useState<{ [postId: number]: string }>({});
 
-    useEffect(() => {
-      if (provider) {
-        fetchPosts();
-      }
-    }, [provider]);
+  useEffect(() => {
+    if (provider) {
+      fetchPosts();
+    }
+  }, [provider]);
 
-    const fetchPosts = async () => {
-      try {
-        const fetchedPosts = await getPosts(provider);
-        setPosts(fetchedPosts);
-      } catch (error) {
-        console.error("Error fetching posts:", error);
-      }
-    };
+  const fetchPosts = async () => {
+    try {
+      const fetchedPosts = await getPosts(provider);
+      setPosts(fetchedPosts);
+      fetchedPosts.forEach(post => fetchComments(post.id));
+    } catch (error) {
+      console.error("Error fetching posts:", error);
+    }
+  };
 
-    const mockPosts = [
-      {
-        id: 1,
-        title: "First Decentralized Post",
-        timestamp: "2024-08-21 10:00 UTC",
-        content: "This is the content of the first post stored on a decentralized network.",
-        imageUrl: "https://via.placeholder.com/150",
-        likes: 12,
-        author: 'xx',
-        authorDID: "0xAbc123...def456"
-      },
-      {
-        id: 2,
-        title: "Exploring Web3 Social Platforms",
-        timestamp: "2024-08-22 14:30 UTC",
-        content: "Web3 social platforms are changing how we interact online. Here's how...",
-        imageUrl: "https://via.placeholder.com/150",
-        likes: 34,
-        author: 'xx',
-        authorDID: "0xDef456...ghi789"
-      },
-      {
-        id: 3,
-        title: "New Features in Web3-SocialDAppPlatform-2024",
-        timestamp: "2024-08-23 09:45 UTC",
-        content: "Today we released some new features that enhance user experience...",
-        imageUrl: "https://via.placeholder.com/150",
-        likes: 20,
-        author: 'xx',
-        authorDID: "0xGhi789...jkl012"
-      },
-    ];
+  const fetchComments = async (postId: number) => {
+    try {
+      const fetchedComments = await getComments(provider, postId);
+      setComments(prev => ({ ...prev, [postId]: fetchedComments }));
+    } catch (error) {
+      console.error("Error fetching comments:", error);
+    }
+  };
 
-    const handleLike = async (postId: number) => {
-      if (!provider || !address) {
-        console.error("Wallet not connected");
-        return;
-      }
-      try {
-        await likePost(provider, postId);
-        fetchPosts(); // Refresh posts after liking
-      } catch (error) {
-        console.error("Error liking post:", error);
-      }
-    };
+  const handleLike = async (postId: number) => {
+    if (!provider || !isConnected) {
+      console.error("Wallet not connected");
+      return;
+    }
+    try {
+      await likePost(provider, postId);
+      fetchPosts();
+    } catch (error) {
+      console.error("Error liking post:", error);
+    }
+  };
 
-    return (
-      <div className="p-8">
-        <h1 className="text-3xl mb-6">List of Posts</h1>
-        <div className="space-y-6">
-          {mockPosts.map((post, index) => (
-            <div key={post.id} className="bg-white p-6 rounded shadow">
-              <h2 className="text-xl font-bold">{post.title}</h2>
-              {post.imageUrl && <img src={post.imageUrl} alt={post.title} className="w-full mb-2" />}
-              <p className="text-gray-800 mb-2">{post.content}</p>
-              <p className="text-sm text-gray-500">Posted by: {post.author}</p>
-              <p className="text-sm text-gray-500">DID: {post.authorDID}</p>
-              <p className="text-sm text-gray-500">{new Date(post.timestamp * 1000).toLocaleString()}</p>
-              <div className="flex justify-between items-center">
-                <button 
-                    className="flex items-center text-blue-500" 
-                    onClick={() => handleLike(post.id)}
+  const handleAddComment = async (postId: number) => {
+    if (!provider || !isConnected) {
+      console.error("Wallet not connected");
+      return;
+    }
+    try {
+      await addComment(provider, postId, newComments[postId]);
+      setNewComments(prev => ({ ...prev, [postId]: '' }));
+      fetchComments(postId);
+    } catch (error) {
+      console.error("Error adding comment:", error);
+    }
+  };
+
+  return (
+    <div className="p-8">
+      <h1 className="text-3xl mb-6">List of Posts</h1>
+      <div className="space-y-6">
+        {posts.map((post) => (
+          <div key={post.id} className="bg-white p-6 rounded shadow">
+            <h2 className="text-xl font-bold">{post.title}</h2>
+            {post.imageUrl && <img src={post.imageUrl} alt={post.title} className="w-full mb-2" />}
+            <p className="text-gray-800 mb-2">{post.content}</p>
+            <p className="text-sm text-gray-500">Posted by: {post.author}</p>
+            <p className="text-sm text-gray-500">{new Date(post.timestamp * 1000).toLocaleString()}</p>
+            <div className="flex justify-between items-center mt-2">
+              <button 
+                className="flex items-center text-blue-500" 
+                onClick={() => handleLike(post.id)}
+              >
+                <span className="mr-2">❤️</span> 
+                {post.likes}
+              </button>
+            </div>
+            
+            <div className="mt-4">
+              <h3 className="text-lg font-semibold">Comments</h3>
+              {comments[post.id]?.map((comment) => (
+                <div key={comment.id} className="bg-gray-100 p-2 rounded mt-2">
+                  <p>{comment.content}</p>
+                  <p className="text-xs text-gray-500">
+                    By: {comment.author} on {new Date(comment.timestamp * 1000).toLocaleString()}
+                  </p>
+                </div>
+              ))}
+              <div className="mt-2">
+                <textarea
+                  value={newComments[post.id] || ''}
+                  onChange={(e) => setNewComments(prev => ({ ...prev, [post.id]: e.target.value }))}
+                  className="w-full p-2 border rounded"
+                  placeholder="Add a comment..."
+                />
+                <button
+                  onClick={() => handleAddComment(post.id)}
+                  className="mt-2 bg-blue-500 text-white py-1 px-2 rounded text-sm"
                 >
-                    <span className="mr-2">❤️</span> 
-                    {post.likes}
+                  Add Comment
                 </button>
+              </div>
             </div>
-            </div>
-          ))}
-        </div>
-        <div className="text-center mt-8">
+          </div>
+        ))}
+      </div>
+      <div className="text-center mt-8">
         <Link href="/" className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
           Back to Home
         </Link>
       </div>
-      </div>
-    );
-  }
+    </div>
+  );
+}

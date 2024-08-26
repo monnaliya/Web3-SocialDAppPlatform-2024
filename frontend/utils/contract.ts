@@ -1,3 +1,5 @@
+// utils/contract.ts
+
 import { Contract, Provider, constants } from "starknet";
 
 // Replace with your actual contract address and ABI
@@ -8,30 +10,58 @@ export function getContract(provider: Provider) {
   return new Contract(CONTRACT_ABI, CONTRACT_ADDRESS, provider);
 }
 
-export async function createPost(provider: Provider, title: string, content: string, imageUrl: string) {
-    const contract = getContract(provider);
-    const result = await contract.create_post(title, content, imageUrl);
-    return result;
+export async function registerUser(provider: Provider, username: string, email: string, bio: string, profileImage: string) {
+  const contract = getContract(provider);
+  const result = await contract.register_user(username, email, bio, profileImage);
+  return result;
+}
+
+export async function updateProfile(provider: Provider, username: string, email: string, bio: string, profileImage: string) {
+  const contract = getContract(provider);
+  const result = await contract.update_profile(username, email, bio, profileImage);
+  return result;
+}
+
+export async function createPost(provider: Provider, title: string, content: string, image: string) {
+  const contract = getContract(provider);
+  const result = await contract.create_post(title, content, image);
+  return result;
 }
 
 export async function getPosts(provider: Provider) {
-    const contract = getContract(provider);
-    const result = await contract.get_posts();
-    return result.map((post: any) => ({
-      id: post.id.toNumber(),
-      title: post.title,
-      content: post.content,
-      image: post.image,
-      likes: post.likes.toNumber(),
-      timestamp: post.timestamp.toNumber(),
-      author: post.author,
-      authorDID: post.author_did
-    }));
+  const contract = getContract(provider);
+  const result = await contract.get_posts();
+  return result.map((post: any) => ({
+    id: post.id.toNumber(),
+    title: post.title,
+    content: post.content,
+    image: post.image,
+    author: post.author,
+    timestamp: post.timestamp.toNumber(),
+    likes: post.likes.toNumber(),
+  }));
 }
 
 export async function likePost(provider: Provider, postId: number) {
-    const contract = getContract(provider);
-    const result = await contract.like_post(postId);
-    return result;
+  const contract = getContract(provider);
+  const result = await contract.like_post(postId);
+  return result;
 }
 
+export async function addComment(provider: Provider, postId: number, content: string) {
+  const contract = getContract(provider);
+  const result = await contract.add_comment(postId, content);
+  return result;
+}
+
+export async function getComments(provider: Provider, postId: number) {
+  const contract = getContract(provider);
+  const result = await contract.get_comments(postId);
+  return result.map((comment: any) => ({
+    id: comment.id.toNumber(),
+    postId: comment.post_id.toNumber(),
+    author: comment.author,
+    content: comment.content,
+    timestamp: comment.timestamp.toNumber(),
+  }));
+}

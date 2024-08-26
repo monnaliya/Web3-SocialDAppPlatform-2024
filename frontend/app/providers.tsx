@@ -1,3 +1,5 @@
+// app/providers.tsx
+
 "use client";
 
 import { StarknetConfig, InjectedConnector, publicProvider } from "@starknet-react/core";

@@ -1,3 +1,5 @@
+// utils/uploadToIPFS.ts
+
 import { ipfsClient } from '../lib/ipfs';
 
 export async function uploadToIPFS(file: File): Promise<string> {
