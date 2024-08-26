@@ -6,6 +6,7 @@ struct User {
     username: felt252,
     email: felt252,
     bio: felt252,
+    profile_image: felt252,
     registered: bool,
 }
 
@@ -14,27 +15,38 @@ struct Post {
     id: u64,
     title: felt252,
     content: felt252,
-    image_url: felt252,
+    image: felt252,
     author: ContractAddress,
     timestamp: u64,
     likes: u64,
 }
 
+#[derive(Drop, Serde, starknet::Store)]
+struct Comment {
+    id: u64,
+    post_id: u64,
+    author: ContractAddress,
+    content: felt252,
+    timestamp: u64,
+}
+
 #[starknet::interface]
 trait IUserRegistry<TContractState> {
-    fn register_user(ref self: TContractState, username: felt252, email: felt252, bio: felt252);
+    fn register_user(ref self: TContractState, username: felt252, email: felt252, bio: felt252, profile_image: felt252);
     fn get_user(self: @TContractState, address: ContractAddress) -> User;
-    fn update_bio(ref self: TContractState, new_bio: felt252);
+    fn update_profile(ref self: TContractState, username: felt252, email: felt252, bio: felt252, profile_image: felt252);
     fn is_registered(self: @TContractState, address: ContractAddress) -> bool;
-    fn create_post(ref self: TContractState, title: felt252, content: felt252, image_url: felt252) -> u64;
+    fn create_post(ref self: TContractState, title: felt252, content: felt252, image: felt252) -> u64;
     fn get_post(self: @TContractState, post_id: u64) -> Post;
     fn get_posts(self: @TContractState) -> Array<Post>;
     fn like_post(ref self: TContractState, post_id: u64);
+    fn add_comment(ref self: TContractState, post_id: u64, content: felt252) -> u64;
+    fn get_comments(self: @TContractState, post_id: u64) -> Array<Comment>;
 }
 
 #[starknet::contract]
 mod UserRegistry {
-    use super::{ContractAddress, User, Post, IUserRegistry};
+    use super::{ContractAddress, User, Post, Comment, IUserRegistry};
     use starknet::get_caller_address;
     use starknet::get_block_timestamp;
 
@@ -42,7 +54,9 @@ mod UserRegistry {
     struct Storage {
         users: LegacyMap::<ContractAddress, User>,
         posts: LegacyMap::<u64, Post>,
+        comments: LegacyMap::<(u64, u64), Comment>, // (post_id, comment_id) -> Comment
         next_post_id: u64,
+        next_comment_id: u64,
     }
 
     #[event]
@@ -50,6 +64,7 @@ mod UserRegistry {
     enum Event {
         UserRegistered: UserRegistered,
         PostCreated: PostCreated,
+        CommentAdded: CommentAdded,
     }
 
     #[derive(Drop, starknet::Event)]
@@ -64,14 +79,22 @@ mod UserRegistry {
         author: ContractAddress,
     }
 
+    #[derive(Drop, starknet::Event)]
+    struct CommentAdded {
+        post_id: u64,
+        comment_id: u64,
+        author: ContractAddress,
+    }
+
     #[constructor]
     fn constructor(ref self: ContractState) {
         self.next_post_id.write(1);
+        self.next_comment_id.write(1);
     }
 
     #[abi(embed_v0)]
     impl UserRegistryImpl of IUserRegistry<ContractState> {
-        fn register_user(ref self: ContractState, username: felt252, email: felt252, bio: felt252) {
+        fn register_user(ref self: ContractState, username: felt252, email: felt252, bio: felt252, profile_image: felt252) {
             let caller = get_caller_address();
             assert(!self.users.read(caller).registered, 'User already registered');
 
@@ -80,6 +103,7 @@ mod UserRegistry {
                 username: username,
                 email: email,
                 bio: bio,
+                profile_image: profile_image,
                 registered: true,
             };
             self.users.write(caller, new_user);
@@ -93,11 +117,14 @@ mod UserRegistry {
             user
         }
 
-        fn update_bio(ref self: ContractState, new_bio: felt252) {
+        fn update_profile(ref self: ContractState, username: felt252, email: felt252, bio: felt252, profile_image: felt252) {
             let caller = get_caller_address();
             let mut user = self.users.read(caller);
             assert(user.registered, 'User not registered');
-            user.bio = new_bio;
+            user.username = username;
+            user.email = email;
+            user.bio = bio;
+            user.profile_image = profile_image;
             self.users.write(caller, user);
         }
 
@@ -105,7 +132,7 @@ mod UserRegistry {
             self.users.read(address).registered
         }
 
-        fn create_post(ref self: ContractState, title: felt252, content: felt252, image_url: felt252) -> u64 {
+        fn create_post(ref self: ContractState, title: felt252, content: felt252, image: felt252) -> u64 {
             let caller = get_caller_address();
             assert(self.users.read(caller).registered, 'User not registered');
 
@@ -114,7 +141,7 @@ mod UserRegistry {
                 id: post_id,
                 title: title,
                 content: content,
-                image_url: image_url,
+                image: image,
                 author: caller,
                 timestamp: get_block_timestamp(),
                 likes: 0,
@@ -153,6 +180,42 @@ mod UserRegistry {
             assert(post.id != 0, 'Post not found');
             post.likes += 1;
             self.posts.write(post_id, post);
+        }
+
+        fn add_comment(ref self: ContractState, post_id: u64, content: felt252) -> u64 {
+            let caller = get_caller_address();
+            assert(self.users.read(caller).registered, 'User not registered');
+            assert(self.posts.read(post_id).id != 0, 'Post not found');
+
+            let comment_id = self.next_comment_id.read();
+            let new_comment = Comment {
+                id: comment_id,
+                post_id: post_id,
+                author: caller,
+                content: content,
+                timestamp: get_block_timestamp(),
+            };
+            self.comments.write((post_id, comment_id), new_comment);
+            self.next_comment_id.write(comment_id + 1);
+
+            self.emit(Event::CommentAdded(CommentAdded { post_id: post_id, comment_id: comment_id, author: caller }));
+            comment_id
+        }
+
+        fn get_comments(self: @ContractState, post_id: u64) -> Array<Comment> {
+            let mut comments = ArrayTrait::new();
+            let mut i = 1;
+            loop {
+                if i >= self.next_comment_id.read() {
+                    break;
+                }
+                let comment = self.comments.read((post_id, i));
+                if comment.id != 0 {
+                    comments.append(comment);
+                }
+                i += 1;
+            };
+            comments
         }
     }
 }
