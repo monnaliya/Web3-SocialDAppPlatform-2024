@@ -2,3 +2,7 @@ target
 
 # misc
 .DS_Store
+
+account.json
+keystore.json
+
