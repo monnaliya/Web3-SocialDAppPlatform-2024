@@ -24,8 +24,15 @@ export default function CreatePage() {
       return;
     }
     try {
-      const imageUrl = file ? await uploadToIPFS(file) : null;
-      await createPost(provider, title, content, imageUrl || '');
+      const imageFile = imageUrl;
+
+      // Ensure imageFile is defined before proceeding
+      if (!imageFile) {
+          console.error("No file uploaded");
+          return;
+      }
+
+      await createPost(provider, title, content, imageFile);
       router.push('/list');
     } catch (error) {
       console.error("Error creating post:", error);

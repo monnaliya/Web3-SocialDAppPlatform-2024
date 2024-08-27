@@ -1,6 +1,6 @@
 // utils/contract.ts
 
-import { Contract, Provider, constants } from "starknet";
+import { Contract, Provider, uint256, shortString } from "starknet";
 
 // Replace with your actual contract address and ABI
 const CONTRACT_ADDRESS = "0x06d32ae8ad1dc57f42cdfa13ca5ff8a4e08d79689e5c70f91f3db31be568f7cb";
@@ -120,6 +120,10 @@ const CONTRACT_ABI = [
   }
 ];
 
+function stringToFelt252(str: string): string {
+  return shortString.encodeShortString(str);
+}
+
 export function getContract(provider: Provider) {
   return new Contract(CONTRACT_ABI, CONTRACT_ADDRESS, provider);
 }
@@ -138,8 +142,19 @@ export async function updateProfile(provider: Provider, username: string, email:
 
 export async function createPost(provider: Provider, title: string, content: string, image: string) {
   const contract = getContract(provider);
-  const result = await contract.create_post(title, content, image);
-  return result;
+  
+  // Convert strings to felt252
+  const titleFelt = stringToFelt252(title);
+  const contentFelt = stringToFelt252(content);
+  const imageFelt = stringToFelt252(image);
+
+  try {
+    const result = await contract.create_post(titleFelt, contentFelt, imageFelt);
+    return result;
+  } catch (error) {
+    console.error("Error creating post:", error);
+    throw error;
+  }
 }
 
 export async function getPosts(provider: Provider) {
