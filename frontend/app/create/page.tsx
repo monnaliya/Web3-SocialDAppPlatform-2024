@@ -11,10 +11,10 @@ import { uploadToIPFS } from '../../utils/uploadToIPFS';
 export default function CreatePage() {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const router = useRouter();
   const { provider } = useProvider();
   const { address, isConnected } = useAccount();
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,31 +23,29 @@ export default function CreatePage() {
       console.error("Wallet not connected");
       return;
     }
+
     try {
-      const imageFile = imageUrl;
+      // Upload content to IPFS
+      const postContent = {
+        title,
+        content,
+        imageUrl: imageFile ? await uploadToIPFS(imageFile) : null
+      };
 
-      // Ensure imageFile is defined before proceeding
-      if (!imageFile) {
-          console.error("No file uploaded");
-          return;
-      }
-
-      await createPost(provider, title, content, imageFile);
+      const contentHash = await uploadToIPFS(new Blob([JSON.stringify(postContent)], { type: 'application/json' }));
+      // Create post on-chain with the content hash
+      await createPost(provider, contentHash);
       router.push('/list');
     } catch (error) {
       console.error("Error creating post:", error);
+      alert("Failed to create post. Please try again.");
     }
   };
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      try {
-        const url = await uploadToIPFS(file);
-        setImageUrl(url);
-      } catch (error) {
-        console.error('Failed to upload file:', error);
-      }
+      setImageFile(file);
     }
   };
 
@@ -81,19 +79,10 @@ export default function CreatePage() {
           <label className="block text-sm font-medium text-gray-700">Image</label>
           <input 
             type="file" 
-            onChange={handleFileUpload}
+            onChange={handleFileChange}
             className="mt-1 block w-full"
           />
         </div>
-
-        {imageUrl && (
-          <div>
-            <p>File uploaded to IPFS:</p>
-            <a href={imageUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
-              {imageUrl}
-            </a>
-          </div>
-        )}
 
         <div>
           <button

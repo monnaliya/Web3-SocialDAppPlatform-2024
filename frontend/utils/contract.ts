@@ -1,6 +1,7 @@
 // utils/contract.ts
 
-import { Contract, Provider, uint256, shortString } from "starknet";
+import { Contract, Provider, shortString } from "starknet";
+import { uploadToIPFS } from './uploadToIPFS';
 
 // Replace with your actual contract address and ABI
 const CONTRACT_ADDRESS = "0x06d32ae8ad1dc57f42cdfa13ca5ff8a4e08d79689e5c70f91f3db31be568f7cb";
@@ -140,16 +141,16 @@ export async function updateProfile(provider: Provider, username: string, email:
   return result;
 }
 
-export async function createPost(provider: Provider, title: string, content: string, image: string) {
+export async function createPost(provider: Provider, content: string): Promise<void>  {
   const contract = getContract(provider);
-  
-  // Convert strings to felt252
-  const titleFelt = stringToFelt252(title);
-  const contentFelt = stringToFelt252(content);
-  const imageFelt = stringToFelt252(image);
+
+  // Upload content json to IPFS
+  const contentHash = await uploadToIPFS(content);
+  // Convert hash to felt252
+  const contentHashFelt = shortString.encodeShortString(contentHash);
 
   try {
-    const result = await contract.create_post(titleFelt, contentFelt, imageFelt);
+    const result = await contract.create_post(contentHashFelt);
     return result;
   } catch (error) {
     console.error("Error creating post:", error);

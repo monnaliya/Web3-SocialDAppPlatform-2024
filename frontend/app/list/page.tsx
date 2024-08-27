@@ -6,12 +6,14 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useProvider, useAccount } from "@starknet-react/core";
 import { getPosts, likePost, getComments, addComment } from '../../utils/contract';
+import { fetchFromIPFS } from '../../utils/fetchFromIPFS';
 
 interface Post {
   id: number;
+  hash: string;
   title: string;
   content: string;
-  imageUrl: string;
+  imageUrl: string | null;
   likes: number;
   timestamp: number;
   author: string;
@@ -40,7 +42,11 @@ export default function ListPage() {
 
   const fetchPosts = async () => {
     try {
-      const fetchedPosts = await getPosts(provider);
+      const postHashes = await getPosts(provider);
+      const fetchedPosts = await Promise.all(postHashes.map(async (hash) => {
+        const content = await fetchFromIPFS(hash);
+        return { hash, ...JSON.parse(content) };
+      }));
       setPosts(fetchedPosts);
       fetchedPosts.forEach(post => fetchComments(post.id));
     } catch (error) {
