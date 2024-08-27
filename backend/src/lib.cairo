@@ -13,7 +13,8 @@ struct User {
 #[derive(Drop, Serde, starknet::Store)]
 struct Post {
     id: u64,
-    hash: felt252,  // Only storing the IPFS hash
+    hash_high: u256,
+    hash_low: u256,
     author: ContractAddress,
     timestamp: u64,
     likes: u64,
@@ -34,7 +35,7 @@ trait IUserRegistry<TContractState> {
     fn get_user(self: @TContractState, address: ContractAddress) -> User;
     fn update_profile(ref self: TContractState, username: felt252, email: felt252, bio: felt252, profile_image: felt252);
     fn is_registered(self: @TContractState, address: ContractAddress) -> bool;
-    fn create_post(ref self: TContractState, hash: felt252) -> u64;  // Only taking the hash as input
+    fn create_post(ref self: TContractState, hash_high: u256, hash_low: u256) -> u64;
     fn get_post(self: @TContractState, post_id: u64) -> Post;
     fn get_posts(self: @TContractState) -> Array<Post>;
     fn like_post(ref self: TContractState, post_id: u64);
@@ -130,14 +131,15 @@ mod UserRegistry {
             self.users.read(address).registered
         }
 
-        fn create_post(ref self: ContractState, hash: felt252) -> u64 {
+        fn create_post(ref self: ContractState, hash_high: u256, hash_low: u256) -> u64 {
             let caller = get_caller_address();
             assert(self.users.read(caller).registered, 'User not registered');
 
             let post_id = self.next_post_id.read();
             let new_post = Post {
                 id: post_id,
-                hash: hash,
+                hash_high: hash_high,
+                hash_low: hash_low,
                 author: caller,
                 timestamp: get_block_timestamp(),
                 likes: 0,
