@@ -14,13 +14,19 @@ export default function CreatePage() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const router = useRouter();
   const { provider } = useProvider();
-  const { address, isConnected } = useAccount();
+  const { address, isConnected, account } = useAccount();
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!provider || !isConnected) {
-      console.error("Wallet not connected");
+    if (!provider) {
+      alert("Provider not available. Please try again.");
+      return;
+    }
+
+    if (!isConnected) {
+      alert("Please connect your wallet first.");
       return;
     }
 
@@ -32,9 +38,10 @@ export default function CreatePage() {
         imageUrl: imageFile ? await uploadToIPFS(imageFile) : null
       };
 
-      const contentHash = await uploadToIPFS(new Blob([JSON.stringify(postContent)], { type: 'application/json' }));
+      const contentHash = await uploadToIPFS(postContent);
       // Create post on-chain with the content hash
-      await createPost(provider, contentHash);
+      await createPost(provider,contentHash, account)
+      alert("Post created successfully!");
       router.push('/list');
     } catch (error) {
       console.error("Error creating post:", error);

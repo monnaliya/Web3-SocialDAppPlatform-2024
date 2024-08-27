@@ -1,129 +1,42 @@
 // utils/contract.ts
 
-import { Contract, Provider, shortString } from "starknet";
+
+import { Provider, Contract, Account, constants, shortString, uint256, number } from "starknet";
+import BN from 'bn.js';
+import bs58 from 'bs58';
+import CONTRACT_ABI from './abi.json';
+
+function ipfsHashToTwoFelt252(ipfsHash: string): [string, string] {
+  try {
+    // Remove the 'Qm' prefix if it exists
+    const hash = ipfsHash.startsWith('Qm') ? ipfsHash.slice(2) : ipfsHash;
+    
+    // Convert the base58 hash to bytes
+    const bytes = bs58.decode(hash);
+    
+    // Convert bytes to hex
+    const hex = '0x' + Buffer.from(bytes).toString('hex');
+    
+    // Convert hex to BigNumber
+    const bn = new BN(hex.slice(2), 16);
+    
+    // felt252 max value (2^251 - 1)
+    const felt252Max = new BN(2).pow(new BN(251)).sub(new BN(1));
+    
+    // Split into two felt252 values
+    const hashLow = bn.mod(felt252Max);
+    const hashHigh = bn.div(felt252Max);
+
+    return [hashHigh.toString(), hashLow.toString()];
+  } catch (error) {
+    console.error('Error converting IPFS hash:', error);
+    throw error;
+  }
+}
 import { uploadToIPFS } from './uploadToIPFS';
 
 // Replace with your actual contract address and ABI
-const CONTRACT_ADDRESS = "0x06d32ae8ad1dc57f42cdfa13ca5ff8a4e08d79689e5c70f91f3db31be568f7cb";
-const CONTRACT_ABI = [
-  {
-    type: "function",
-    name: "register_user",
-    inputs: [
-      { name: "username", type: "felt252" },
-      { name: "email", type: "felt252" },
-      { name: "bio", type: "felt252" },
-      { name: "profile_image", type: "felt252" }
-    ],
-    outputs: [],
-    stateMutability: "external"
-  },
-  {
-    type: "function",
-    name: "get_user",
-    inputs: [
-      { name: "address", type: "felt252" }
-    ],
-    outputs: [
-      { name: "user", type: "User" }
-    ],
-    stateMutability: "view"
-  },
-  {
-    type: "function",
-    name: "update_profile",
-    inputs: [
-      { name: "username", type: "felt252" },
-      { name: "email", type: "felt252" },
-      { name: "bio", type: "felt252" },
-      { name: "profile_image", type: "felt252" }
-    ],
-    outputs: [],
-    stateMutability: "external"
-  },
-  {
-    type: "function",
-    name: "create_post",
-    inputs: [
-      { name: "title", type: "felt252" },
-      { name: "content", type: "felt252" },
-      { name: "image", type: "felt252" }
-    ],
-    outputs: [{ name: "post_id", type: "u64" }],
-    stateMutability: "external"
-  },
-  {
-    type: "function",
-    name: "get_posts",
-    inputs: [],
-    outputs: [{ name: "posts", type: "Post[]" }],
-    stateMutability: "view"
-  },
-  {
-    type: "function",
-    name: "like_post",
-    inputs: [{ name: "post_id", type: "u64" }],
-    outputs: [],
-    stateMutability: "external"
-  },
-  {
-    type: "function",
-    name: "add_comment",
-    inputs: [
-      { name: "post_id", type: "u64" },
-      { name: "content", type: "felt252" }
-    ],
-    outputs: [{ name: "comment_id", type: "u64" }],
-    stateMutability: "external"
-  },
-  {
-    type: "function",
-    name: "get_comments",
-    inputs: [{ name: "post_id", type: "u64" }],
-    outputs: [{ name: "comments", type: "Comment[]" }],
-    stateMutability: "view"
-  },
-  {
-    type: "struct",
-    name: "User",
-    members: [
-      { name: "address", type: "felt252" },
-      { name: "username", type: "felt252" },
-      { name: "email", type: "felt252" },
-      { name: "bio", type: "felt252" },
-      { name: "profile_image", type: "felt252" },
-      { name: "registered", type: "bool" }
-    ]
-  },
-  {
-    type: "struct",
-    name: "Post",
-    members: [
-      { name: "id", type: "u64" },
-      { name: "title", type: "felt252" },
-      { name: "content", type: "felt252" },
-      { name: "image", type: "felt252" },
-      { name: "author", type: "felt252" },
-      { name: "timestamp", type: "u64" },
-      { name: "likes", type: "u64" }
-    ]
-  },
-  {
-    type: "struct",
-    name: "Comment",
-    members: [
-      { name: "id", type: "u64" },
-      { name: "post_id", type: "u64" },
-      { name: "author", type: "felt252" },
-      { name: "content", type: "felt252" },
-      { name: "timestamp", type: "u64" }
-    ]
-  }
-];
-
-function stringToFelt252(str: string): string {
-  return shortString.encodeShortString(str);
-}
+const CONTRACT_ADDRESS = "0x05f14f15dbe03bbf3a18b0b446a613a93f5229a77bc52718cba7e748556f4705";
 
 export function getContract(provider: Provider) {
   return new Contract(CONTRACT_ABI, CONTRACT_ADDRESS, provider);
@@ -141,16 +54,22 @@ export async function updateProfile(provider: Provider, username: string, email:
   return result;
 }
 
-export async function createPost(provider: Provider, content: string): Promise<void>  {
+
+export async function createPost(provider: Provider, ipfsHash: string, account)  {
   const contract = getContract(provider);
 
-  // Upload content json to IPFS
-  const contentHash = await uploadToIPFS(content);
-  // Convert hash to felt252
-  const contentHashFelt = shortString.encodeShortString(contentHash);
-
   try {
-    const result = await contract.create_post(contentHashFelt);
+    const [hashHigh, hashLow] = ipfsHashToTwoFelt252(ipfsHash);
+    const hashHighUint256 = uint256.bnToUint256(BigInt(hashHigh));
+    const hashLowUint256 = uint256.bnToUint256(BigInt(hashLow));
+    
+    // Use the account to execute the contract call
+    const result = await account.execute({
+      contractAddress: contract.address,
+      entrypoint: "create_post",
+      calldata: [hashHighUint256.low, hashHighUint256.high, hashLowUint256.low, hashLowUint256.high]
+    });
+
     return result;
   } catch (error) {
     console.error("Error creating post:", error);
