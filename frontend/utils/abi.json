@@ -39,10 +39,6 @@
         "type": "core::felt252"
       },
       {
-        "name": "profile_image",
-        "type": "core::felt252"
-      },
-      {
         "name": "registered",
         "type": "core::bool"
       }
@@ -137,10 +133,6 @@
           {
             "name": "bio",
             "type": "core::felt252"
-          },
-          {
-            "name": "profile_image",
-            "type": "core::felt252"
           }
         ],
         "outputs": [],
@@ -176,10 +168,6 @@
           },
           {
             "name": "bio",
-            "type": "core::felt252"
-          },
-          {
-            "name": "profile_image",
             "type": "core::felt252"
           }
         ],

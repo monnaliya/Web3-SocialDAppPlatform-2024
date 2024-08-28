@@ -11,7 +11,6 @@ export default function ProfilePage() {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [bio, setBio] = useState('');
-  const [profileImage, setProfileImage] = useState('');
   const router = useRouter();
   const { provider } = useProvider();
   const { address, isConnected } = useAccount();
@@ -35,8 +34,7 @@ export default function ProfilePage() {
         provider,
         username,
         email,
-        bio,
-        profileImage
+        bio
       );
       console.log("Profile updated:", result);
       router.push('/');
@@ -70,12 +68,6 @@ export default function ProfilePage() {
           value={bio}
           onChange={(e) => setBio(e.target.value)}
           placeholder="Bio"
-        />
-        <input
-          className="w-full p-2 border border-gray-300 rounded mb-4"
-          value={profileImage}
-          onChange={(e) => setProfileImage(e.target.value)}
-          placeholder="Profile Image URL"
         />
         <button type="submit" className="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
           {isConnected ? 'Update Profile' : 'Register'}

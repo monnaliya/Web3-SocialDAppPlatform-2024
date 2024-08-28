@@ -1,10 +1,13 @@
 // utils/contract.ts
 
 
-import { Provider, Contract, Account, constants, shortString, uint256, number } from "starknet";
+import { Provider, Contract, Account, constants, shortString, uint256, number, BigNumberish } from "starknet";
 import BN from 'bn.js';
 import bs58 from 'bs58';
 import CONTRACT_ABI from './abi.json';
+
+// Replace with your actual contract address and ABI
+const CONTRACT_ADDRESS = "0x001e62036b313b16b815111c54dbd82edae3989bb3d15763823732971d6c6dd9";
 
 function ipfsHashToTwoFelt252(ipfsHash: string): [string, string] {
   try {
@@ -34,14 +37,11 @@ function ipfsHashToTwoFelt252(ipfsHash: string): [string, string] {
   }
 }
 
-// Replace with your actual contract address and ABI
-const CONTRACT_ADDRESS = "0x05f14f15dbe03bbf3a18b0b446a613a93f5229a77bc52718cba7e748556f4705";
-
 export function getContract(provider: Provider) {
   return new Contract(CONTRACT_ABI, CONTRACT_ADDRESS, provider);
 }
 
-export async function registerUser(provider: Provider, username: string, email: string, bio: string, profileImage: string, account) {
+export async function registerUser(provider: Provider, username: string, email: string, bio: string, account) {
   const contract = getContract(provider);
   
   if (!account) {
@@ -52,12 +52,12 @@ export async function registerUser(provider: Provider, username: string, email: 
     const usernameShort = shortString.encodeShortString(username);
     const emailShort = shortString.encodeShortString(email);
     const bioShort = shortString.encodeShortString(bio);
-    const profileImageShort = shortString.encodeShortString(profileImage);
+    const calldata: BigNumberish[] = [usernameShort, emailShort, bioShort];
 
     const result = await account.execute({
       contractAddress: contract.address,
       entrypoint: "register_user",
-      calldata: [usernameShort, emailShort, bioShort, profileImageShort]
+      calldata: calldata
     });
 
     console.log('---User registration result:', result);
@@ -68,9 +68,9 @@ export async function registerUser(provider: Provider, username: string, email: 
   }
 }
 
-export async function updateProfile(provider: Provider, username: string, email: string, bio: string, profileImage: string) {
+export async function updateProfile(provider: Provider, username: string, email: string, bio: string) {
   const contract = getContract(provider);
-  const result = await contract.update_profile(username, email, bio, profileImage);
+  const result = await contract.update_profile(username, email, bio);
   return result;
 }
 

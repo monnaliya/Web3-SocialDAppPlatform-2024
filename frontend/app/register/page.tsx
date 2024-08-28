@@ -10,7 +10,6 @@ export default function RegisterPage() {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [bio, setBio] = useState('');
-  const [profileImage, setProfileImage] = useState('');
   const router = useRouter();
   const { provider } = useProvider();
   const { address, isConnected, account } = useAccount();
@@ -25,7 +24,7 @@ export default function RegisterPage() {
     }
 
     try {
-      await registerUser(provider, username, email, bio, profileImage, account);
+      await registerUser(provider, username, email, bio, account);
       alert("User registered successfully!");
       router.push('/');
     } catch (error) {
@@ -65,15 +64,6 @@ export default function RegisterPage() {
             onChange={(e) => setBio(e.target.value)}
             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
             rows={3}
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Profile Image URL</label>
-          <input
-            type="text"
-            value={profileImage}
-            onChange={(e) => setProfileImage(e.target.value)}
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
           />
         </div>
         <div>
