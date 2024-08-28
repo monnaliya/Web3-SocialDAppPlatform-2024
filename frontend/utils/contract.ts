@@ -33,7 +33,6 @@ function ipfsHashToTwoFelt252(ipfsHash: string): [string, string] {
     throw error;
   }
 }
-import { uploadToIPFS } from './uploadToIPFS';
 
 // Replace with your actual contract address and ABI
 const CONTRACT_ADDRESS = "0x05f14f15dbe03bbf3a18b0b446a613a93f5229a77bc52718cba7e748556f4705";
@@ -42,10 +41,31 @@ export function getContract(provider: Provider) {
   return new Contract(CONTRACT_ABI, CONTRACT_ADDRESS, provider);
 }
 
-export async function registerUser(provider: Provider, username: string, email: string, bio: string, profileImage: string) {
+export async function registerUser(provider: Provider, username: string, email: string, bio: string, profileImage: string, account) {
   const contract = getContract(provider);
-  const result = await contract.register_user(username, email, bio, profileImage);
-  return result;
+  
+  if (!account) {
+    throw new Error("No account connected. Please connect your wallet first.");
+  }
+
+  try {
+    const usernameShort = shortString.encodeShortString(username);
+    const emailShort = shortString.encodeShortString(email);
+    const bioShort = shortString.encodeShortString(bio);
+    const profileImageShort = shortString.encodeShortString(profileImage);
+
+    const result = await account.execute({
+      contractAddress: contract.address,
+      entrypoint: "register_user",
+      calldata: [usernameShort, emailShort, bioShort, profileImageShort]
+    });
+
+    console.log('---User registration result:', result);
+    return result;
+  } catch (error) {
+    console.error("Error registering user:", error);
+    throw error;
+  }
 }
 
 export async function updateProfile(provider: Provider, username: string, email: string, bio: string, profileImage: string) {

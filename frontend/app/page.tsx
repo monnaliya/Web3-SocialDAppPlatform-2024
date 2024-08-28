@@ -86,6 +86,13 @@ export default function Home() {
 
           <div className="mt-8">
             <button
+              onClick={() => goToPage("/register")}
+              className="bg-blue-500 text-white py-2 px-4 rounded"
+            >
+              Register
+            </button>           
+
+            <button
               onClick={() => goToPage("/list")}
               className="bg-blue-500 text-white py-2 px-4 rounded"
             >
