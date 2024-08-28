@@ -157,11 +157,12 @@ export async function addComment(postId: number, content: string, account) {
 export async function getComments(postId: number) {
   const contract = getContract(provider);
   const result = await contract.get_comments(postId);
+  console.log('--comments--', result)
   return result.map((comment: any) => ({
-    id: comment.id.toNumber(),
-    postId: comment.post_id.toNumber(),
+    id: Number(comment.id),
+    postId: Number(comment.post_id),
     author: comment.author,
     content: comment.content,
-    timestamp: comment.timestamp.toNumber(),
+    timestamp: Number(comment.timestamp),
   }));
 }
