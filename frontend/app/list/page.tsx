@@ -42,11 +42,13 @@ export default function ListPage() {
 
   const fetchPosts = async () => {
     try {
-      const postHashes = await getPosts(provider);
+      const postHashes = await getPosts();
+      console.log("Fetched post hashes:", postHashes);
       const fetchedPosts = await Promise.all(postHashes.map(async (hash) => {
         const content = await fetchFromIPFS(hash);
         return { hash, ...JSON.parse(content) };
       }));
+      console.log("Fetched posts:", fetchedPosts);
       setPosts(fetchedPosts);
       fetchedPosts.forEach(post => fetchComments(post.id));
     } catch (error) {
@@ -56,7 +58,7 @@ export default function ListPage() {
 
   const fetchComments = async (postId: number) => {
     try {
-      const fetchedComments = await getComments(provider, postId);
+      const fetchedComments = await getComments(postId);
       setComments(prev => ({ ...prev, [postId]: fetchedComments }));
     } catch (error) {
       console.error("Error fetching comments:", error);
@@ -69,7 +71,7 @@ export default function ListPage() {
       return;
     }
     try {
-      await likePost(provider, postId);
+      await likePost(postId);
       fetchPosts();
     } catch (error) {
       console.error("Error liking post:", error);
@@ -82,7 +84,7 @@ export default function ListPage() {
       return;
     }
     try {
-      await addComment(provider, postId, newComments[postId]);
+      await addComment(postId, newComments[postId]);
       setNewComments(prev => ({ ...prev, [postId]: '' }));
       fetchComments(postId);
     } catch (error) {

@@ -31,7 +31,6 @@ export default function ProfilePage() {
     try {
       // Determine if this is a new registration or an update
       const result = await (isConnected ? updateProfile : registerUser)(
-        provider,
         username,
         email,
         bio

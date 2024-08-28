@@ -24,7 +24,7 @@ export default function RegisterPage() {
     }
 
     try {
-      await registerUser(provider, username, email, bio, account);
+      await registerUser(username, email, bio, account);
       alert("User registered successfully!");
       router.push('/');
     } catch (error) {
