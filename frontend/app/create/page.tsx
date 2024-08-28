@@ -40,7 +40,7 @@ export default function CreatePage() {
 
       const contentHash = await uploadToIPFS(postContent);
       // Create post on-chain with the content hash
-      await createPost(provider,contentHash, account)
+      await createPost(contentHash, account)
       alert("Post created successfully!");
       router.push('/list');
     } catch (error) {
