@@ -84,7 +84,7 @@ export default function ListPage() {
       return;
     }
     try {
-      await addComment(postId, newComments[postId]);
+      await addComment(postId, newComments[postId], account);
       setNewComments(prev => ({ ...prev, [postId]: '' }));
       fetchComments(postId);
     } catch (error) {

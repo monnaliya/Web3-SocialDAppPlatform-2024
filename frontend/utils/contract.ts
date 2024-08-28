@@ -144,9 +144,13 @@ export async function likePost(postId: number, account) {
   return result;
 }
 
-export async function addComment(postId: number, content: string) {
+export async function addComment(postId: number, content: string, account) {
   const contract = getContract(provider);
-  const result = await contract.add_comment(postId, content);
+  const result = await account.execute({
+    contractAddress: contract.address,
+    entrypoint: 'add_comment',
+    calldata: [Number(postId), content]
+  })
   return result;
 }
 
