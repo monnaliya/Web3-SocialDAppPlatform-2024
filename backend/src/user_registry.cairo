@@ -1,61 +1,54 @@
 #[starknet::contract]
-
-use starknet::ContractAddress;
-
-#[derive(Drop, Serde, starknet::Store)]
-struct User {
-    address: ContractAddress,
-    username: felt252,
-    email: felt252,
-    bio: felt252,
-    registered: bool,
-    token_balance: u256,
-}
-
-#[derive(Drop, Serde, starknet::Store)]
-struct Post {
-    id: u64,
-    hash_high: u256,
-    hash_low: u256,
-    author: ContractAddress,
-    timestamp: u64,
-    likes: u64,
-    is_nft: bool,
-    nft_owner: ContractAddress,
-    nft_price: u256,
-}
-
-#[derive(Drop, Serde, starknet::Store)]
-struct Comment {
-    id: u64,
-    post_id: u64,
-    author: ContractAddress,
-    content: felt252,
-    timestamp: u64,
-}
-
-#[starknet::interface]
-trait IUserRegistry<TContractState> {
-    fn register_user(ref self: TContractState, username: felt252, email: felt252, bio: felt252);
-    fn get_user(self: @TContractState, address: ContractAddress) -> User;
-    fn update_profile(ref self: TContractState, username: felt252, email: felt252, bio: felt252);
-    fn is_registered(self: @TContractState, address: ContractAddress) -> bool;
-    fn create_post(ref self: TContractState, hash_high: u256, hash_low: u256) -> u64;
-    fn get_post(self: @TContractState, post_id: u64) -> Post;
-    fn get_posts(self: @TContractState) -> Array<Post>;
-    fn like_post(ref self: TContractState, post_id: u64);
-    fn add_comment(ref self: TContractState, post_id: u64, content: felt252) -> u64;
-    fn get_comments(self: @TContractState, post_id: u64) -> Array<Comment>;
-
-    // New functions for token and NFT support
-    fn get_token_balance(self: @TContractState, address: ContractAddress) -> u256;
-    fn transfer_tokens(ref self: TContractState, to: ContractAddress, amount: u256);
-    fn create_nft_post(ref self: TContractState, hash: felt252, price: u256) -> u64;
-}
-
-#[starknet::contract]
 mod UserRegistry {
-    use super::{ContractAddress, User, Post, Comment, IUserRegistry};
+    use starknet::ContractAddress;
+
+    #[derive(Drop, Serde, starknet::Store)]
+    struct User {
+        address: ContractAddress,
+        username: felt252,
+        email: felt252,
+        bio: felt252,
+        registered: bool,
+        token_balance: u256,
+    }
+    
+    #[derive(Drop, Serde, starknet::Store, Clone)]
+    struct Post {
+        id: u64,
+        hash_high: u256,
+        hash_low: u256,
+        author: ContractAddress,
+        timestamp: u64,
+        likes: u64,
+    }
+    
+    #[derive(Drop, Serde, starknet::Store)]
+    struct Comment {
+        id: u64,
+        post_id: u64,
+        author: ContractAddress,
+        content: felt252,
+        timestamp: u64,
+    }
+    
+    #[starknet::interface]
+    trait IUserRegistry<TContractState> {
+        fn register_user(ref self: TContractState, username: felt252, email: felt252, bio: felt252);
+        fn get_user(self: @TContractState, address: ContractAddress) -> User;
+        fn update_profile(ref self: TContractState, username: felt252, email: felt252, bio: felt252);
+        fn is_registered(self: @TContractState, address: ContractAddress) -> bool;
+        fn create_post(ref self: TContractState, hash_high: u256, hash_low: u256) -> u64;
+        fn get_post(self: @TContractState, post_id: u64) -> Post;
+        fn get_posts(self: @TContractState) -> Array<Post>;
+        fn like_post(ref self: TContractState, post_id: u64);
+        fn add_comment(ref self: TContractState, post_id: u64, content: felt252) -> u64;
+        fn get_comments(self: @TContractState, post_id: u64) -> Array<Comment>;
+    
+        // New functions for token and NFT support
+        fn get_token_balance(self: @TContractState, address: ContractAddress) -> u256;
+        fn transfer_tokens(ref self: TContractState, to: ContractAddress, amount: u256);
+    }
+
     use starknet::get_caller_address;
     use starknet::get_block_timestamp;
 
@@ -79,8 +72,6 @@ mod UserRegistry {
         PostCreated: PostCreated,
         CommentAdded: CommentAdded,
         TokensRewarded: TokensRewarded,
-        NFTCreated: NFTCreated,
-        NFTSold: NFTSold,
     }
 
     #[derive(Drop, starknet::Event)]
@@ -224,7 +215,7 @@ mod UserRegistry {
             let mut post = self.posts.read(post_id);
             assert(post.id != 0, 'Post not found');
             post.likes += 1;
-            self.posts.write(post_id, post);
+            self.posts.write(post_id, post.clone());
 
             // Reward post author with tokens
             let mut author = self.users.read(post.author);
@@ -284,28 +275,6 @@ mod UserRegistry {
             let mut recipient = self.users.read(to);
             recipient.token_balance += amount;
             self.users.write(to, recipient);
-        }
-
-        fn create_nft_post(ref self: ContractState, hash: felt252, price: u256) -> u64 {
-            let caller = get_caller_address();
-            assert(self.users.read(caller).registered, 'User not registered');
-
-            let post_id = self.next_post_id.read();
-            let new_post = Post {
-                id: post_id,
-                hash: hash,
-                author: caller,
-                timestamp: get_block_timestamp(),
-                likes: 0,
-                is_nft: true,
-                nft_owner: caller,
-                nft_price: price,
-            };
-            self.posts.write(post_id, new_post);
-            self.next_post_id.write(post_id + 1);
-
-            self.emit(Event::NFTCreated(NFTCreated { post_id: post_id, creator: caller, price: price }));
-            post_id
         }
 
         fn get_comments(self: @ContractState, post_id: u64) -> Array<Comment> {

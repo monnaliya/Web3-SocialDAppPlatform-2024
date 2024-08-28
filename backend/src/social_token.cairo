@@ -1,7 +1,23 @@
+use starknet::ContractAddress;
+
+#[starknet::interface]
+trait IERC20<TContractState> {
+    fn name(self: @TContractState) -> felt252;
+    fn symbol(self: @TContractState) -> felt252;
+    fn decimals(self: @TContractState) -> u8;
+    fn total_supply(self: @TContractState) -> u256;
+    fn balance_of(self: @TContractState, account: ContractAddress) -> u256;
+    fn allowance(self: @TContractState, owner: ContractAddress, spender: ContractAddress) -> u256;
+    fn transfer(ref self: TContractState, recipient: ContractAddress, amount: u256) -> bool;
+    fn transfer_from(ref self: TContractState, sender: ContractAddress, recipient: ContractAddress, amount: u256) -> bool;
+    fn approve(ref self: TContractState, spender: ContractAddress, amount: u256) -> bool;
+}
+
 #[starknet::contract]
 mod SocialToken {
     use starknet::get_caller_address;
     use starknet::ContractAddress;
+    use super::IERC20;
 
     #[storage]
     struct Storage {
@@ -43,8 +59,8 @@ mod SocialToken {
         self.balances.write(get_caller_address(), initial_supply);
     }
 
-    #[external(v0)]
-    impl IERC20 of super::IERC20<ContractState> {
+    #[abi(embed_v0)]
+    impl IERC20Impl of IERC20<ContractState> {
         fn name(self: @ContractState) -> felt252 {
             self.name.read()
         }
@@ -92,7 +108,7 @@ mod SocialToken {
     #[generate_trait]
     impl Private of PrivateTrait {
         fn transfer_helper(ref self: ContractState, sender: ContractAddress, recipient: ContractAddress, amount: u256) {
-            assert(recipient != ContractAddress::zero(), 'ERC20: transfer to zero');
+            assert(recipient != starknet::contract_address_const::<0>(), 'ERC20: transfer to zero');
             self.balances.write(sender, self.balances.read(sender) - amount);
             self.balances.write(recipient, self.balances.read(recipient) + amount);
             self.emit(Event::Transfer(Transfer { from: sender, to: recipient, value: amount }));
@@ -112,17 +128,4 @@ mod SocialToken {
             }
         }
     }
-}
-
-#[starknet::interface]
-trait IERC20<TContractState> {
-    fn name(self: @TContractState) -> felt252;
-    fn symbol(self: @TContractState) -> felt252;
-    fn decimals(self: @TContractState) -> u8;
-    fn total_supply(self: @TContractState) -> u256;
-    fn balance_of(self: @TContractState, account: ContractAddress) -> u256;
-    fn allowance(self: @TContractState, owner: ContractAddress, spender: ContractAddress) -> u256;
-    fn transfer(ref self: TContractState, recipient: ContractAddress, amount: u256) -> bool;
-    fn transfer_from(ref self: TContractState, sender: ContractAddress, recipient: ContractAddress, amount: u256) -> bool;
-    fn approve(ref self: TContractState, spender: ContractAddress, amount: u256) -> bool;
 }
