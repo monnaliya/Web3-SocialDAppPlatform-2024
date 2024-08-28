@@ -67,7 +67,7 @@ export function getContract() {
 }
 
 export async function registerUser(username: string, email: string, bio: string, account) {
-  const contract = getContract(provider);
+  const contract = getContract();
   
   if (!account) {
     throw new Error("No account connected. Please connect your wallet first.");
@@ -94,14 +94,14 @@ export async function registerUser(username: string, email: string, bio: string,
 }
 
 export async function updateProfile(username: string, email: string, bio: string) {
-  const contract = getContract(provider);
+  const contract = getContract();
   const result = await contract.update_profile(username, email, bio);
   return result;
 }
 
 
 export async function createPost(ipfsHash: string, account)  {
-  const contract = getContract(provider);
+  const contract = getContract();
 
   try {
     const [hashHigh, hashLow] = ipfsHashToTwoFelt252(ipfsHash);
@@ -123,7 +123,7 @@ export async function createPost(ipfsHash: string, account)  {
 }
 
 export async function getPosts() {
-  const contract = getContract(provider);
+  const contract = getContract();
   const result = await contract.get_posts();
   return result.map((post: any) => ({
     id: post.id,
@@ -135,7 +135,7 @@ export async function getPosts() {
 }
 
 export async function likePost(postId: number, account) {
-  const contract = getContract(provider);
+  const contract = getContract();
   const result = await account.execute({
     contractAddress: contract.address,
     entrypoint: "like_post",
@@ -145,7 +145,7 @@ export async function likePost(postId: number, account) {
 }
 
 export async function addComment(postId: number, content: string, account) {
-  const contract = getContract(provider);
+  const contract = getContract();
   const result = await account.execute({
     contractAddress: contract.address,
     entrypoint: 'add_comment',
@@ -155,7 +155,7 @@ export async function addComment(postId: number, content: string, account) {
 }
 
 export async function getComments(postId: number) {
-  const contract = getContract(provider);
+  const contract = getContract();
   const result = await contract.get_comments(postId);
   console.log('--comments--', result)
   return result.map((comment: any) => ({
@@ -165,4 +165,34 @@ export async function getComments(postId: number) {
     content: comment.content,
     timestamp: Number(comment.timestamp),
   }));
+}
+
+export async function getTokenBalance(address: string, account) {
+  const contract = getContract();
+  const balance = await account.execute({
+    contractAddress: contract.address,
+    entrypoint: 'get_token_balance',
+    calldata: [address]
+  });
+  return balance;
+}
+
+export async function transferTokens(to: string, amount: number, account) {
+  const contract = getContract();
+  const result = await account.execute({
+    contractAddress: contract.address,
+    entrypoint: 'transfer_tokens',
+    calldata: [to, amount]
+  });
+  return result;
+}
+
+export async function createNFTPost(hash: string, price: number, account) {
+  const contract = getContract();
+  const result = await account.execute({
+    contractAddress: contract.address,
+    entrypoint: 'create_nft_post',
+    calldata: [hash, price]
+  });
+  return result;
 }
