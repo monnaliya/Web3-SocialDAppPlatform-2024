@@ -7,6 +7,7 @@ struct User {
     email: felt252,
     bio: felt252,
     registered: bool,
+    token_balance: u256,
 }
 
 #[derive(Drop, Serde, starknet::Store)]
@@ -17,6 +18,9 @@ struct Post {
     author: ContractAddress,
     timestamp: u64,
     likes: u64,
+    is_nft: bool,
+    nft_owner: ContractAddress,
+    nft_price: u256,
 }
 
 #[derive(Drop, Serde, starknet::Store)]
@@ -40,6 +44,12 @@ trait IUserRegistry<TContractState> {
     fn like_post(ref self: TContractState, post_id: u64);
     fn add_comment(ref self: TContractState, post_id: u64, content: felt252) -> u64;
     fn get_comments(self: @TContractState, post_id: u64) -> Array<Comment>;
+
+    // New functions for token and NFT support
+    fn get_token_balance(self: @TContractState, address: ContractAddress) -> u256;
+    fn transfer_tokens(ref self: TContractState, to: ContractAddress, amount: u256);
+    fn create_nft_post(ref self: TContractState, hash: felt252, price: u256) -> u64;
+    fn buy_nft_post(ref self: TContractState, post_id: u64);
 }
 
 #[starknet::contract]
@@ -47,6 +57,9 @@ mod UserRegistry {
     use super::{ContractAddress, User, Post, Comment, IUserRegistry};
     use starknet::get_caller_address;
     use starknet::get_block_timestamp;
+
+    const LIKE_REWARD: u256 = 1;
+    const COMMENT_REWARD: u256 = 2;
 
     #[storage]
     struct Storage {
@@ -63,6 +76,9 @@ mod UserRegistry {
         UserRegistered: UserRegistered,
         PostCreated: PostCreated,
         CommentAdded: CommentAdded,
+        TokensRewarded: TokensRewarded,
+        NFTCreated: NFTCreated,
+        NFTSold: NFTSold,
     }
 
     #[derive(Drop, starknet::Event)]
@@ -83,6 +99,29 @@ mod UserRegistry {
         comment_id: u64,
         author: ContractAddress,
     }
+
+    #[derive(Drop, starknet::Event)]
+    struct TokensRewarded {
+        user: ContractAddress,
+        amount: u256,
+        reason: felt252,
+    }
+
+    #[derive(Drop, starknet::Event)]
+    struct NFTCreated {
+        post_id: u64,
+        creator: ContractAddress,
+        price: u256,
+    }
+
+    #[derive(Drop, starknet::Event)]
+    struct NFTSold {
+        post_id: u64,
+        seller: ContractAddress,
+        buyer: ContractAddress,
+        price: u256,
+    }
+
 
     #[constructor]
     fn constructor(ref self: ContractState) {
@@ -171,10 +210,24 @@ mod UserRegistry {
         }
 
         fn like_post(ref self: ContractState, post_id: u64) {
+            let caller = get_caller_address();
+            assert(self.users.read(caller).registered, 'User not registered');
+
             let mut post = self.posts.read(post_id);
             assert(post.id != 0, 'Post not found');
             post.likes += 1;
             self.posts.write(post_id, post);
+
+            // Reward post author with tokens
+            let mut author = self.users.read(post.author);
+            author.token_balance += LIKE_REWARD;
+            self.users.write(post.author, author);
+
+            self.emit(Event::TokensRewarded(TokensRewarded {
+                user: post.author,
+                amount: LIKE_REWARD,
+                reason: 'post_like',
+            }));
         }
 
         fn add_comment(ref self: ContractState, post_id: u64, content: felt252) -> u64 {
@@ -193,8 +246,85 @@ mod UserRegistry {
             self.comments.write((post_id, comment_id), new_comment);
             self.next_comment_id.write(comment_id + 1);
 
+            // Reward post author with tokens
+            let post = self.posts.read(post_id);
+            let mut author = self.users.read(post.author);
+            author.token_balance += COMMENT_REWARD;
+            self.users.write(post.author, author);
+
             self.emit(Event::CommentAdded(CommentAdded { post_id: post_id, comment_id: comment_id, author: caller }));
+            self.emit(Event::TokensRewarded(TokensRewarded {
+                user: post.author,
+                amount: COMMENT_REWARD,
+                reason: 'post_comment',
+            }));
+
             comment_id
+        }
+        fn get_token_balance(self: @ContractState, address: ContractAddress) -> u256 {
+            self.users.read(address).token_balance
+        }
+
+        fn transfer_tokens(ref self: ContractState, to: ContractAddress, amount: u256) {
+            let caller = get_caller_address();
+            let mut sender = self.users.read(caller);
+            assert(sender.token_balance >= amount, 'Insufficient balance');
+            
+            sender.token_balance -= amount;
+            self.users.write(caller, sender);
+
+            let mut recipient = self.users.read(to);
+            recipient.token_balance += amount;
+            self.users.write(to, recipient);
+        }
+
+        fn create_nft_post(ref self: ContractState, hash: felt252, price: u256) -> u64 {
+            let caller = get_caller_address();
+            assert(self.users.read(caller).registered, 'User not registered');
+
+            let post_id = self.next_post_id.read();
+            let new_post = Post {
+                id: post_id,
+                hash: hash,
+                author: caller,
+                timestamp: get_block_timestamp(),
+                likes: 0,
+                is_nft: true,
+                nft_owner: caller,
+                nft_price: price,
+            };
+            self.posts.write(post_id, new_post);
+            self.next_post_id.write(post_id + 1);
+
+            self.emit(Event::NFTCreated(NFTCreated { post_id: post_id, creator: caller, price: price }));
+            post_id
+        }
+
+        fn buy_nft_post(ref self: ContractState, post_id: u64) {
+            let caller = get_caller_address();
+            let mut post = self.posts.read(post_id);
+            assert(post.is_nft, 'Post is not an NFT');
+            assert(post.nft_owner != caller, 'Already owned');
+
+            let mut buyer = self.users.read(caller);
+            assert(buyer.token_balance >= post.nft_price, 'Insufficient balance');
+
+            let mut seller = self.users.read(post.nft_owner);
+            buyer.token_balance -= post.nft_price;
+            seller.token_balance += post.nft_price;
+
+            post.nft_owner = caller;
+            
+            self.users.write(caller, buyer);
+            self.users.write(post.nft_owner, seller);
+            self.posts.write(post_id, post);
+
+            self.emit(Event::NFTSold(NFTSold {
+                post_id: post_id,
+                seller: post.nft_owner,
+                buyer: caller,
+                price: post.nft_price,
+            }));
         }
 
         fn get_comments(self: @ContractState, post_id: u64) -> Array<Comment> {
