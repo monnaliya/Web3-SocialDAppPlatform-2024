@@ -43,12 +43,11 @@ export default function ListPage() {
   const fetchPosts = async () => {
     try {
       const postHashes = await getPosts();
-      console.log("Fetched post hashes:", postHashes);
-      const fetchedPosts = await Promise.all(postHashes.map(async (hash) => {
-        const content = await fetchFromIPFS(hash);
-        return { hash, ...JSON.parse(content) };
+      const fetchedPosts = await Promise.all(postHashes.map(async (data) => {
+        const content = await fetchFromIPFS(data.hash);
+        const post = { ...data, ...content }
+        return post;
       }));
-      console.log("Fetched posts:", fetchedPosts);
       setPosts(fetchedPosts);
       fetchedPosts.forEach(post => fetchComments(post.id));
     } catch (error) {
@@ -102,7 +101,7 @@ export default function ListPage() {
             {post.imageUrl && <img src={post.imageUrl} alt={post.title} className="w-full mb-2" />}
             <p className="text-gray-800 mb-2">{post.content}</p>
             <p className="text-sm text-gray-500">Posted by: {post.author}</p>
-            <p className="text-sm text-gray-500">{new Date(post.timestamp * 1000).toLocaleString()}</p>
+            {/* <p className="text-sm text-gray-500">{new Date(post.timestamp * 1000).toLocaleString()}</p> */}
             <div className="flex justify-between items-center mt-2">
               <button 
                 className="flex items-center text-blue-500" 
@@ -119,7 +118,7 @@ export default function ListPage() {
                 <div key={comment.id} className="bg-gray-100 p-2 rounded mt-2">
                   <p>{comment.content}</p>
                   <p className="text-xs text-gray-500">
-                    By: {comment.author} on {new Date(comment.timestamp * 1000).toLocaleString()}
+                    {/* By: {comment.author} on {new Date(comment.timestamp * 1000).toLocaleString()} */}
                   </p>
                 </div>
               ))}

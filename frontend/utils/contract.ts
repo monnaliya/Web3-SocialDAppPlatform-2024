@@ -2,6 +2,7 @@
 
 
 import { Provider, Contract, Account, constants, shortString, uint256, number, BigNumberish } from "starknet";
+import { Buffer } from 'buffer';
 import BN from 'bn.js';
 import bs58 from 'bs58';
 import provider from './provider';
@@ -12,30 +13,53 @@ const CONTRACT_ADDRESS = "0x001e62036b313b16b815111c54dbd82edae3989bb3d157638237
 
 function ipfsHashToTwoFelt252(ipfsHash: string): [string, string] {
   try {
-    // Remove the 'Qm' prefix if it exists
-    const hash = ipfsHash.startsWith('Qm') ? ipfsHash.slice(2) : ipfsHash;
+    // Decode the base58 hash to bytes
+    const bytes = bs58.decode(ipfsHash);
     
-    // Convert the base58 hash to bytes
-    const bytes = bs58.decode(hash);
+    // Remove the first two bytes (multihash prefix)
+    const hashBytes = bytes.slice(2);
     
-    // Convert bytes to hex
-    const hex = '0x' + Buffer.from(bytes).toString('hex');
+    // Convert bytes to BigNumber
+    const bn = new BN(hashBytes);
     
-    // Convert hex to BigNumber
-    const bn = new BN(hex.slice(2), 16);
+    // Use bitwise operations to split into two felt252 values
+    const mask = new BN(2).pow(new BN(252)).sub(new BN(1));
+    const hashLow = bn.and(mask);
+    const hashHigh = bn.shrn(252);
     
-    // felt252 max value (2^251 - 1)
-    const felt252Max = new BN(2).pow(new BN(251)).sub(new BN(1));
-    
-    // Split into two felt252 values
-    const hashLow = bn.mod(felt252Max);
-    const hashHigh = bn.div(felt252Max);
-
     return [hashHigh.toString(), hashLow.toString()];
   } catch (error) {
     console.error('Error converting IPFS hash:', error);
     throw error;
   }
+}
+
+function combineHashParts(hashHigh: string, hashLow: string): string {
+  // Convert hashHigh and hashLow to BigNumber
+  const highBN = new BN(hashHigh);
+  const lowBN = new BN(hashLow);
+  
+  // Combine the two parts using bitwise operations
+  const fullHashBN = highBN.shln(252).or(lowBN);
+  
+  // Convert to bytes (32 bytes)
+  const hashBytes = fullHashBN.toArrayLike(Buffer, 'be', 32);
+  
+  // Add the multihash prefix for IPFS (assuming it's always Qm for IPFS v0)
+  const multihashPrefix = Buffer.from([0x12, 0x20]); // 0x12 = sha2-256, 0x20 = 32 bytes length
+  const fullBytes = Buffer.concat([multihashPrefix, hashBytes]);
+  
+  // Encode to base58
+  const ipfsHash = bs58.encode(fullBytes);
+  
+  return ipfsHash;
+}
+
+// Helper function to convert felt252 string to BigNumber
+function felt252ToBN(felt: string): BN {
+  // Remove 'n' suffix if present
+  const cleanFelt = felt.endsWith('n') ? felt.slice(0, -1) : felt;
+  return new BN(cleanFelt);
 }
 
 export function getContract() {
@@ -100,18 +124,13 @@ export async function createPost(ipfsHash: string, account)  {
 
 export async function getPosts() {
   const contract = getContract(provider);
-  // const latestBlock = await provider.getBlock("latest");
-  // console.log("Latest block:", latestBlock);
   const result = await contract.get_posts();
-  console.log("Raw result from get_posts:", result);
   return result.map((post: any) => ({
     id: post.id,
-    title: post.title,
-    content: post.content,
-    image: post.image,
     author: post.author,
     timestamp: post.timestamp,
     likes: post.likes,
+    hash: combineHashParts(post.hash_high, post.hash_low)
   }));
 }
 
