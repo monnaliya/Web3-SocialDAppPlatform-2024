@@ -1,5 +1,5 @@
 [package]
-name = "backend"
+name = "social_media_dapp"
 version = "0.1.0"
 edition = "2023_11"
 scarb_version = "2.6.5"
@@ -15,8 +15,15 @@ openzeppelin = { git = "https://github.com/OpenZeppelin/cairo-contracts.git", ta
 
 
 [[target.starknet-contract]]
+sierra = true
 casm = true
 
 [tool.fmt]
 sort-module-level-items = true
+
+[contract.user_registry]
+path = "src/user_registry.cairo"
+
+[contract.social_token]
+path = "src/social_token.cairo"
 
