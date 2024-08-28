@@ -21,9 +21,16 @@ casm = true
 [tool.fmt]
 sort-module-level-items = true
 
-[contract.user_registry]
-path = "src/user_registry.cairo"
+[lib]
+name = "social_media_dapp"
+sierra = true
 
+# Add the new social_token target
 [contract.social_token]
+name = "social_token"
 path = "src/social_token.cairo"
 
+# Add the new user_registry target
+[contract.user_registry]
+name = "user_registry"
+path = "src/user_registry.cairo"

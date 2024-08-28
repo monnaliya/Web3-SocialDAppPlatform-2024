@@ -1,3 +1,5 @@
+#[starknet::contract]
+
 use starknet::ContractAddress;
 
 #[derive(Drop, Serde, starknet::Store)]
