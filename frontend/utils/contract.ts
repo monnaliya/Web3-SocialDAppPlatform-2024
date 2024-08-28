@@ -127,16 +127,20 @@ export async function getPosts() {
   const result = await contract.get_posts();
   return result.map((post: any) => ({
     id: post.id,
-    author: post.author,
+    author: post.author.toString(),
     timestamp: post.timestamp,
     likes: post.likes,
     hash: combineHashParts(post.hash_high, post.hash_low)
   }));
 }
 
-export async function likePost(postId: number) {
+export async function likePost(postId: number, account) {
   const contract = getContract(provider);
-  const result = await contract.like_post(postId);
+  const result = await account.execute({
+    contractAddress: contract.address,
+    entrypoint: "like_post",
+    calldata: [postId.toString()] // Assuming the calldata for like_post only requires the postId
+  });
   return result;
 }
 

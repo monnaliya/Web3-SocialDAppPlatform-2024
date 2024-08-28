@@ -30,7 +30,7 @@ interface Comment {
 export default function ListPage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const { provider } = useProvider();
-  const { address, isConnected } = useAccount();
+  const { address, isConnected, account } = useAccount();
   const [comments, setComments] = useState<{ [postId: number]: Comment[] }>({});
   const [newComments, setNewComments] = useState<{ [postId: number]: string }>({});
 
@@ -48,6 +48,7 @@ export default function ListPage() {
         const post = { ...data, ...content }
         return post;
       }));
+      console.log('--fetchedPosts---', fetchedPosts)
       setPosts(fetchedPosts);
       fetchedPosts.forEach(post => fetchComments(post.id));
     } catch (error) {
@@ -70,7 +71,7 @@ export default function ListPage() {
       return;
     }
     try {
-      await likePost(postId);
+      await likePost(postId, account);
       fetchPosts();
     } catch (error) {
       console.error("Error liking post:", error);
@@ -108,7 +109,7 @@ export default function ListPage() {
                 onClick={() => handleLike(post.id)}
               >
                 <span className="mr-2">❤️</span> 
-                {post.likes}
+                {Number(post.likes)}
               </button>
             </div>
             
