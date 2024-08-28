@@ -101,7 +101,7 @@ export default function ListPage() {
             <h2 className="text-xl font-bold">{post.title}</h2>
             {post.imageUrl && <img src={post.imageUrl} alt={post.title} className="w-full mb-2" />}
             <p className="text-gray-800 mb-2">{post.content}</p>
-            <p className="text-sm text-gray-500">Posted by: {post.author}</p>
+            <p className="text-sm text-gray-500">Posted by: {post.author.slice(0, 6)}...{post.author.slice(-4)}</p>
             {/* <p className="text-sm text-gray-500">{new Date(post.timestamp * 1000).toLocaleString()}</p> */}
             <div className="flex justify-between items-center mt-2">
               <button 
