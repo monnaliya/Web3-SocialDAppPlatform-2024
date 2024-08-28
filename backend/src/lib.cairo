@@ -6,7 +6,6 @@ struct User {
     username: felt252,
     email: felt252,
     bio: felt252,
-    profile_image: felt252,
     registered: bool,
 }
 
@@ -31,9 +30,9 @@ struct Comment {
 
 #[starknet::interface]
 trait IUserRegistry<TContractState> {
-    fn register_user(ref self: TContractState, username: felt252, email: felt252, bio: felt252, profile_image: felt252);
+    fn register_user(ref self: TContractState, username: felt252, email: felt252, bio: felt252);
     fn get_user(self: @TContractState, address: ContractAddress) -> User;
-    fn update_profile(ref self: TContractState, username: felt252, email: felt252, bio: felt252, profile_image: felt252);
+    fn update_profile(ref self: TContractState, username: felt252, email: felt252, bio: felt252);
     fn is_registered(self: @TContractState, address: ContractAddress) -> bool;
     fn create_post(ref self: TContractState, hash_high: u256, hash_low: u256) -> u64;
     fn get_post(self: @TContractState, post_id: u64) -> Post;
@@ -93,7 +92,7 @@ mod UserRegistry {
 
     #[abi(embed_v0)]
     impl UserRegistryImpl of IUserRegistry<ContractState> {
-        fn register_user(ref self: ContractState, username: felt252, email: felt252, bio: felt252, profile_image: felt252) {
+        fn register_user(ref self: ContractState, username: felt252, email: felt252, bio: felt252) {
             let caller = get_caller_address();
             assert(!self.users.read(caller).registered, 'User already registered');
 
@@ -102,7 +101,6 @@ mod UserRegistry {
                 username: username,
                 email: email,
                 bio: bio,
-                profile_image: profile_image,
                 registered: true,
             };
             self.users.write(caller, new_user);
@@ -116,14 +114,13 @@ mod UserRegistry {
             user
         }
 
-        fn update_profile(ref self: ContractState, username: felt252, email: felt252, bio: felt252, profile_image: felt252) {
+        fn update_profile(ref self: ContractState, username: felt252, email: felt252, bio: felt252) {
             let caller = get_caller_address();
             let mut user = self.users.read(caller);
             assert(user.registered, 'User not registered');
             user.username = username;
             user.email = email;
             user.bio = bio;
-            user.profile_image = profile_image;
             self.users.write(caller, user);
         }
 
