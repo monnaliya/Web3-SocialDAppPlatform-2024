@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useProvider, useAccount } from "@starknet-react/core";
 import { getPosts } from '@/utils/contract';
 import PostList from "../components/PostList";
 import { mockPosts } from '@/mockData/posts';
+import Layout from "../components/Layout";
 import { PostCardProps } from "@/utils/types";
 
-export default function ListPage() {
+const ListPage: React.FC = () => {
   const { provider } = useProvider();
   const { address, isConnected, account } = useAccount();
   const [posts, setPosts] = useState([]);
@@ -46,6 +47,10 @@ export default function ListPage() {
     }
   }
   return (
-    <PostList posts={posts} />
+    <Layout>
+      <PostList posts={posts} />
+    </Layout>
   );
 }
+
+export default ListPage;

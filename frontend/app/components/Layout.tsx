@@ -16,7 +16,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <TopMiddle />
         <TopRight />
       </header>
-      <main className="flex-grow mt-20"> {/* mt-20 to ensure the main content is not hidden behind the fixed header */}
+      <main className="flex-grow mt-20 h-[calc(100vh-20px)] overflow-y-auto"> {/* mt-20 to ensure the main content is not hidden behind the fixed header */}
         {children}
       </main>
     </div>
