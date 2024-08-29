@@ -1,11 +1,8 @@
 import React from 'react';
-import { useRouter } from 'next/navigation';
+import { useGoToPage } from '@/utils/navigation';
 
 const TopMiddle: React.FC = () => {
-  const router = useRouter();
-  const goToPage = (page: string) => {
-    router.push(page);
-  };
+  const goToPage = useGoToPage();
   return (
     <div className="flex items-center">
       <span onClick={() => goToPage('profile')} className="text-gray-700 hover:text-gray-900 px-3 py-2">Profile</span>

@@ -7,15 +7,14 @@ import Layout from './components/Layout';
 import RegisterPrompt from './components/RegisterPrompt';
 import { useConnect, useAccount } from "@starknet-react/core";
 import Introduction from './components/Introduction';
+import { useGoToPage } from '@/utils/navigation';
 
 export default function Home() {
   const router = useRouter();
   const [isPromptVisible, setIsPromptVisible] = useState(false);
   const { address, isConnected } = useAccount();
 
-  const goToPage = (page: string) => {
-    router.push(page);
-  };
+  const goToPage = useGoToPage();
 
   const handleRegister = () => {
     setIsPromptVisible(false);
