@@ -1,7 +1,7 @@
 import React from 'react';
-import { mockPosts } from '@/mockData/posts';
+import { PostCardProps } from '@/utils/types';
 
-const Introduction: React.FC = () => {
+const Introduction: React.FC<{ posts: PostCardProps[] }> = ({posts}) => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex justify-between items-center flex-col lg:flex-row">
@@ -31,7 +31,7 @@ const Introduction: React.FC = () => {
             </p>
             {/* 用户建议列表 */}
             <ul className="space-y-4 overflow-y-auto">
-              {mockPosts.map((post) => (
+              {posts.map((post) => (
                 <li key={post.id} className="flex items-center justify-between">
                   <div className="flex items-center">
                     <img src={post.imageUrl} alt={post.title} className="w-10 h-10 rounded-full mr-3" />
