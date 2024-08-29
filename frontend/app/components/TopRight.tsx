@@ -1,7 +1,7 @@
   import React, { useState, useEffect } from 'react';
   import { useConnect, useAccount, useProvider, useDisconnect } from '@starknet-react/core';
   import { useRouter } from 'next/navigation';
-  import { isRegistered } from '../../utils/contract'; // Assume this function exists in your contract utils
+  import { isRegistered } from '@/utils/contract'; // Assume this function exists in your contract utils
 
   const TopRight: React.FC = () => {
   const { connect, connectors } = useConnect();

@@ -22,6 +22,8 @@
     "next": "14.2.5",
     "react": "^18",
     "react-dom": "^18",
+    "slate": "^0.103.0",
+    "slate-react": "^0.109.0",
     "starknet": "^6.11.0"
   },
   "devDependencies": {

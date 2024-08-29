@@ -2,51 +2,54 @@
 
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
+import { createEditor, Descendant } from 'slate';
+import { Slate, Editable, withReact, RenderElementProps, RenderLeafProps} from 'slate-react';
 import { useRouter } from 'next/navigation';
 import { useProvider, useAccount } from "@starknet-react/core";
-import { createPost } from '../../utils/contract';
-import { uploadToIPFS } from '../../utils/uploadToIPFS';
+import { createPost } from '@/utils/contract';
+import { uploadToIPFS } from '@/utils/uploadToIPFS';
 import Layout from "../components/Layout";
 
 const CreatePage: React.FC = () => {
+  const [editor] = useState(() => withReact(createEditor()));
   const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
+  const [content, setContent] = useState<Descendant[]>([
+    {
+      type: 'paragraph',
+      children: [{ text: '' }],
+    },
+  ]);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const router = useRouter();
   const { provider } = useProvider();
   const { address, isConnected, account } = useAccount();
-
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!provider) {
-      alert("Provider not available. Please try again.");
+    if (!provider || !isConnected) {
+      console.error("Wallet not connected");
       return;
     }
-
-    if (!isConnected) {
-      alert("Please connect your wallet first.");
-      return;
-    }
-
     try {
-      // Upload content to IPFS
+      const serializedContent = JSON.stringify(content);
+      // const contentBlob = new Blob([serializedContent], { type: 'application/json' });
+      // const contentHash = await uploadToIPFS(contentBlob);
+      // // Split the hash into high and low parts as before
+      // const hashBigInt = BigInt(`0x${contentHash}`);
+      // const hashHigh = (hashBigInt >> 128n).toString();
+      // const hashLow = (hashBigInt & ((1n << 128n) - 1n)).toString();
+      // await createPost(hashHigh, hashLow, title, account);
+      const imageUrl = imageFile ? await uploadToIPFS(imageFile) : null
       const postContent = {
         title,
-        content,
-        imageUrl: imageFile ? await uploadToIPFS(imageFile) : null
+        content: serializedContent,
+        imageUrl: imageUrl
       };
-
       const contentHash = await uploadToIPFS(postContent);
-      // Create post on-chain with the content hash
       await createPost(contentHash, account)
-      alert("Post created successfully!");
       router.push('/list');
     } catch (error) {
       console.error("Error creating post:", error);
-      alert("Failed to create post. Please try again.");
     }
   };
 
@@ -56,6 +59,20 @@ const CreatePage: React.FC = () => {
       setImageFile(file);
     }
   };
+
+  const renderElement = useCallback((props: RenderElementProps) => {
+    switch (props.element.type) {
+      case 'paragraph':
+        return <p {...props.attributes}>{props.children}</p>;
+      // Add more cases for other element types (e.g., headings, lists)
+      default:
+        return <p {...props.attributes}>{props.children}</p>;
+    }
+  }, []);
+  
+  const renderLeaf = useCallback((props: RenderLeafProps) => {
+    return <span {...props.attributes}>{props.children}</span>;
+  }, []);
 
   return (
     <Layout>
@@ -72,27 +89,24 @@ const CreatePage: React.FC = () => {
               required
             />
           </div>
-
           <div>
             <label className="block text-sm font-medium text-gray-700">Content</label>
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-              rows={4}
-              required
-            />
+            <Slate editor={editor} initialValue={content} onChange={setContent}>
+              <Editable
+                placeholder="Write your content here..."
+                renderElement={renderElement}
+                renderLeaf={renderLeaf}
+              />
+            </Slate>
           </div>
-
           <div>
             <label className="block text-sm font-medium text-gray-700">Image</label>
-            <input 
-              type="file" 
+            <input
+              type="file"
               onChange={handleFileChange}
               className="mt-1 block w-full"
             />
           </div>
-
           <div>
             <button
               type="submit"

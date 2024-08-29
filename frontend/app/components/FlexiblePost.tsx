@@ -1,7 +1,7 @@
 import React from 'react';
 import { format } from 'date-fns';
 
-import { Post } from '../../utils/types';
+import { Post } from '@/utils/types';
 
 interface PostCardProps {
   post: Post,

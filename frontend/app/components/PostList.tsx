@@ -1,6 +1,6 @@
 import React from 'react';
 import FlexiblePost from './FlexiblePost';
-import { Post, PostCardProps } from '../../utils/types';
+import { Post, PostCardProps } from '@/utils/types';
 
 const PostList: React.FC<PostCardProps[]> = ({posts}) => {
   return (

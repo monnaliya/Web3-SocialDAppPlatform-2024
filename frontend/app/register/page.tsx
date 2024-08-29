@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useProvider, useAccount } from "@starknet-react/core";
-import { registerUser } from '../../utils/contract';
+import { registerUser } from '@/utils/contract';
 import { Account } from 'starknet';
 import Layout from "../components/Layout";
 
