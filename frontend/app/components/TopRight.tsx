@@ -87,12 +87,14 @@
 
   return (
     <div className="flex items-center space-x-4">
+
       <button
         onClick={handleCreateClick}
-        className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+        className="ml-4 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded"
       >
-        Create
+        + Create
       </button>
+
       <div className="relative">
         <button
           onClick={() => setShowProfileMenu(!showProfileMenu)}
