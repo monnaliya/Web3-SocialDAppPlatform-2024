@@ -1,54 +1,58 @@
+use starknet::ContractAddress;
+
+#[derive(Drop, Serde, starknet::Store)]
+struct User {
+    address: ContractAddress,
+    username: felt252,
+    email: felt252,
+    bio: felt252,
+    registered: bool,
+    token_balance: u256,
+}
+
+#[derive(Drop, Serde, starknet::Store, Clone)]
+struct Post {
+    id: u64,
+    hash_high: u256,
+    hash_low: u256,
+    author: ContractAddress,
+    timestamp: u64,
+    likes: u64,
+}
+
+#[derive(Drop, Serde, starknet::Store)]
+struct Comment {
+    id: u64,
+    post_id: u64,
+    author: ContractAddress,
+    content: felt252,
+    timestamp: u64,
+}
+
+#[starknet::interface]
+trait IUserRegistry<TContractState> {
+    fn register_user(ref self: TContractState, username: felt252, email: felt252, bio: felt252);
+    fn get_user(self: @TContractState, address: ContractAddress) -> User;
+    fn update_profile(ref self: TContractState, username: felt252, email: felt252, bio: felt252);
+    fn is_registered(self: @TContractState, address: ContractAddress) -> bool;
+    fn create_post(ref self: TContractState, hash_high: u256, hash_low: u256) -> u64;
+    // fn get_post(self: @TContractState, post_id: u64) -> Post;
+    fn get_posts(self: @TContractState) -> Array<Post>;
+    fn like_post(ref self: TContractState, post_id: u64);
+    fn add_comment(ref self: TContractState, post_id: u64, content: felt252) -> u64;
+    fn get_comments(self: @TContractState, post_id: u64) -> Array<Comment>;
+
+    // New functions for token and NFT support
+    fn get_token_balance(self: @TContractState, address: ContractAddress) -> u256;
+    fn transfer_tokens(ref self: TContractState, to: ContractAddress, amount: u256);
+    // fn get_contract_owner(self: @TContractState) -> ContractAddress;
+    // fn set_social_token_address(ref self: TContractState, address: ContractAddress);
+    // fn transfer_ownership(ref self: TContractState, new_owner: ContractAddress);
+}
+
 #[starknet::contract]
 mod UserRegistry {
-    use starknet::ContractAddress;
-
-    #[derive(Drop, Serde, starknet::Store)]
-    struct User {
-        address: ContractAddress,
-        username: felt252,
-        email: felt252,
-        bio: felt252,
-        registered: bool,
-        token_balance: u256,
-    }
-    
-    #[derive(Drop, Serde, starknet::Store, Clone)]
-    struct Post {
-        id: u64,
-        hash_high: u256,
-        hash_low: u256,
-        author: ContractAddress,
-        timestamp: u64,
-        likes: u64,
-    }
-    
-    #[derive(Drop, Serde, starknet::Store)]
-    struct Comment {
-        id: u64,
-        post_id: u64,
-        author: ContractAddress,
-        content: felt252,
-        timestamp: u64,
-    }
-    
-    #[starknet::interface]
-    trait IUserRegistry<TContractState> {
-        fn register_user(ref self: TContractState, username: felt252, email: felt252, bio: felt252);
-        fn get_user(self: @TContractState, address: ContractAddress) -> User;
-        fn update_profile(ref self: TContractState, username: felt252, email: felt252, bio: felt252);
-        fn is_registered(self: @TContractState, address: ContractAddress) -> bool;
-        fn create_post(ref self: TContractState, hash_high: u256, hash_low: u256) -> u64;
-        fn get_post(self: @TContractState, post_id: u64) -> Post;
-        fn get_posts(self: @TContractState) -> Array<Post>;
-        fn like_post(ref self: TContractState, post_id: u64);
-        fn add_comment(ref self: TContractState, post_id: u64, content: felt252) -> u64;
-        fn get_comments(self: @TContractState, post_id: u64) -> Array<Comment>;
-    
-        // New functions for token and NFT support
-        fn get_token_balance(self: @TContractState, address: ContractAddress) -> u256;
-        fn transfer_tokens(ref self: TContractState, to: ContractAddress, amount: u256);
-    }
-
+    use super::{User, Post, Comment, IUserRegistry, ContractAddress};
     use starknet::get_caller_address;
     use starknet::get_block_timestamp;
 
@@ -63,6 +67,8 @@ mod UserRegistry {
         comments: LegacyMap::<(u64, u64), Comment>, // (post_id, comment_id) -> Comment
         next_post_id: u64,
         next_comment_id: u64,
+        // contract_owner: ContractAddress, // contract owner address
+        social_token_address: ContractAddress, // social token address
     }
 
     #[event]
@@ -107,19 +113,12 @@ mod UserRegistry {
         price: u256,
     }
 
-    #[derive(Drop, starknet::Event)]
-    struct NFTSold {
-        post_id: u64,
-        seller: ContractAddress,
-        buyer: ContractAddress,
-        price: u256,
-    }
-
-
     #[constructor]
-    fn constructor(ref self: ContractState) {
+    fn constructor(ref self: ContractState, owner: ContractAddress) {
         self.next_post_id.write(1);
         self.next_comment_id.write(1);
+        // write the contract owner addrss
+        // self.contract_owner.write(owner);
     }
 
     #[abi(embed_v0)]
@@ -134,7 +133,7 @@ mod UserRegistry {
                 email: email,
                 bio: bio,
                 registered: true,
-                token_balance: INITIAL_TOKEN_BALANCE,
+                token_balance: INITIAL_TOKEN_BALANCE, // when the user registry, give them some innitial token balance
             };
             self.users.write(caller, new_user);
 
@@ -186,11 +185,11 @@ mod UserRegistry {
             post_id
         }
 
-        fn get_post(self: @ContractState, post_id: u64) -> Post {
-            let post = self.posts.read(post_id);
-            assert(post.id != 0, 'Post not found');
-            post
-        }
+        // fn get_post(self: @ContractState, post_id: u64) -> Post {
+        //     let post = self.posts.read(post_id);
+        //     assert(post.id != 0, 'Post not found');
+        //     post
+        // }
 
         fn get_posts(self: @ContractState) -> Array<Post> {
             let mut posts = ArrayTrait::new();
@@ -260,6 +259,23 @@ mod UserRegistry {
 
             comment_id
         }
+
+        fn get_comments(self: @ContractState, post_id: u64) -> Array<Comment> {
+            let mut comments = ArrayTrait::new();
+            let mut i = 1;
+            loop {
+                if i >= self.next_comment_id.read() {
+                    break;
+                }
+                let comment = self.comments.read((post_id, i));
+                if comment.id != 0 {
+                    comments.append(comment);
+                }
+                i += 1;
+            };
+            comments
+        }
+
         fn get_token_balance(self: @ContractState, address: ContractAddress) -> u256 {
             self.users.read(address).token_balance
         }
@@ -277,20 +293,18 @@ mod UserRegistry {
             self.users.write(to, recipient);
         }
 
-        fn get_comments(self: @ContractState, post_id: u64) -> Array<Comment> {
-            let mut comments = ArrayTrait::new();
-            let mut i = 1;
-            loop {
-                if i >= self.next_comment_id.read() {
-                    break;
-                }
-                let comment = self.comments.read((post_id, i));
-                if comment.id != 0 {
-                    comments.append(comment);
-                }
-                i += 1;
-            };
-            comments
-        }
+        // fn get_contract_owner(self: @ContractState) -> ContractAddress {
+        //     self.contract_owner.read()
+        // }
+
+        // fn set_social_token_address(ref self: ContractState, address: ContractAddress) {
+        //     assert(starknet::get_caller_address() == self.contract_owner.read(), 'Only owner can set token');
+        //     self.social_token_address.write(address);
+        // }
+
+        // fn transfer_ownership(ref self: ContractState, new_owner: ContractAddress) {
+        //     assert(get_caller_address() == self.contract_owner.read(), 'Not owner');
+        //     self.contract_owner.write(new_owner);
+        // }
     }
 }

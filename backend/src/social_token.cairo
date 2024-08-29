@@ -56,7 +56,7 @@ mod SocialToken {
         self.symbol.write('SCT');
         self.decimals.write(18);
         self.total_supply.write(initial_supply);
-        self.balances.write(get_caller_address(), initial_supply);
+        self.balances.write(starknet::get_caller_address(), initial_supply); // initial supply
     }
 
     #[abi(embed_v0)]
