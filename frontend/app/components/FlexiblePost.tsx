@@ -1,29 +1,14 @@
 import React from 'react';
 import { format } from 'date-fns';
 
-interface PostProps {
-  direction: 'vertical' | 'horizontal';
-  imageUrl: string;
-  title: string;
-  author: string;
-  createdAt: Date;
-  content: string;
-  likes: number;
-  comments: number;
+import { Post } from '../../utils/types';
+
+interface PostCardProps {
+  post: Post,
+  isVertical: boolean
 }
 
-const FlexiblePost: React.FC<PostProps> = ({
-  direction,
-  imageUrl,
-  title,
-  author,
-  createdAt,
-  content,
-  likes,
-  comments
-}) => {
-  const isVertical = direction === 'vertical';
-
+const FlexiblePost: React.FC<PostCardProps> = ({post: {id, imageUrl, title, author, createdAt, content, likes, comments}, isVertical: isVertical}) => {
   return (
     <div className={`bg-white rounded-lg shadow-md overflow-hidden ${isVertical ? 'flex flex-col' : 'flex'}`}>
       <div className={`${isVertical ? 'w-full' : 'w-1/2'}`}>
@@ -33,7 +18,8 @@ const FlexiblePost: React.FC<PostProps> = ({
         <h2 className="text-2xl font-bold mb-2">{title}</h2>
         <div className="flex items-center text-sm text-gray-600 mb-4">
           <span className="mr-4">{author}</span>
-          <span>{format(createdAt, 'MMMM d, yyyy')}</span>
+          <span>{createdAt ? createdAt.toString() : ''}</span>
+          {/* <span>{format(createdAt, 'MMMM d, yyyy')}</span> */}
         </div>
         <p className="text-gray-700 mb-4">{content}</p>
         <div className="flex justify-between items-center">
