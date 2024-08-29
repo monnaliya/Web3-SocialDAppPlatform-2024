@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useProvider, useAccount } from "@starknet-react/core";
-import { getPosts, likePost, getComments, addComment } from '../../utils/contract';
+import { getPosts, getTokenBalance, likePost, getComments, addComment } from '../../utils/contract';
 import { fetchFromIPFS } from '../../utils/fetchFromIPFS';
 
 interface Post {
@@ -33,12 +33,14 @@ export default function ListPage() {
   const { address, isConnected, account } = useAccount();
   const [comments, setComments] = useState<{ [postId: number]: Comment[] }>({});
   const [newComments, setNewComments] = useState<{ [postId: number]: string }>({});
+  const [tokenBalance, setTokenBalance] = useState('0');
 
   useEffect(() => {
-    if (provider) {
+    if (provider && isConnected) {
       fetchPosts();
+      fetchTokenBalance();
     }
-  }, [provider]);
+  }, [provider, isConnected]);
 
   const fetchPosts = async () => {
     try {
@@ -55,6 +57,13 @@ export default function ListPage() {
       console.error("Error fetching posts:", error);
     }
   };
+
+  const fetchTokenBalance = async () => {
+    if (address) {
+      const balance = await getTokenBalance(address, account);
+      setTokenBalance(balance.toString());
+    }
+  }
 
   const fetchComments = async (postId: number) => {
     try {
@@ -73,6 +82,7 @@ export default function ListPage() {
     try {
       await likePost(postId, account);
       fetchPosts();
+      fetchTokenBalance();
     } catch (error) {
       console.error("Error liking post:", error);
     }
@@ -87,6 +97,7 @@ export default function ListPage() {
       await addComment(postId, newComments[postId], account);
       setNewComments(prev => ({ ...prev, [postId]: '' }));
       fetchComments(postId);
+      fetchTokenBalance();
     } catch (error) {
       console.error("Error adding comment:", error);
     }

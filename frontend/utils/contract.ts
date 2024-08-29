@@ -8,8 +8,12 @@ import bs58 from 'bs58';
 import provider from './provider';
 import CONTRACT_ABI from './abi.json';
 
+import { userRegistryAbi } from './userRegistryAbi';
+import { socialTokenAbi } from './socialTokenAbi';
+
 // Replace with your actual contract address and ABI
-const CONTRACT_ADDRESS = "0x001e62036b313b16b815111c54dbd82edae3989bb3d15763823732971d6c6dd9";
+const USER_REGISTRY_ADDRESS = process.env.NEXT_PUBLIC_USER_REGISTRY_ADDRESS;
+const SOCIAL_TOKEN_ADDRESS = process.env.NEXT_PUBLIC_SOCIAL_TOKEN_ADDRESS;
 
 function ipfsHashToTwoFelt252(ipfsHash: string): [string, string] {
   try {
@@ -62,12 +66,16 @@ function felt252ToBN(felt: string): BN {
   return new BN(cleanFelt);
 }
 
-export function getContract() {
-  return new Contract(CONTRACT_ABI, CONTRACT_ADDRESS, provider);
-}
+export const getUserRegistryContract = () => {
+  return new Contract(userRegistryAbi, USER_REGISTRY_ADDRESS, provider);
+};
+
+export const getSocialTokenContract = () => {
+  return new Contract(socialTokenAbi, SOCIAL_TOKEN_ADDRESS, provider);
+};
 
 export async function registerUser(username: string, email: string, bio: string, account) {
-  const contract = getContract();
+  const contract = getUserRegistryContract();
   
   if (!account) {
     throw new Error("No account connected. Please connect your wallet first.");
@@ -101,7 +109,7 @@ export async function updateProfile(username: string, email: string, bio: string
 
 
 export async function createPost(ipfsHash: string, account)  {
-  const contract = getContract();
+  const contract = getUserRegistryContract();
 
   try {
     const [hashHigh, hashLow] = ipfsHashToTwoFelt252(ipfsHash);
@@ -123,7 +131,7 @@ export async function createPost(ipfsHash: string, account)  {
 }
 
 export async function getPosts() {
-  const contract = getContract();
+  const contract = getUserRegistryContract();
   const result = await contract.get_posts();
   return result.map((post: any) => ({
     id: post.id,
@@ -135,7 +143,7 @@ export async function getPosts() {
 }
 
 export async function likePost(postId: number, account) {
-  const contract = getContract();
+  const contract = getUserRegistryContract();
   const result = await account.execute({
     contractAddress: contract.address,
     entrypoint: "like_post",
@@ -145,7 +153,7 @@ export async function likePost(postId: number, account) {
 }
 
 export async function addComment(postId: number, content: string, account) {
-  const contract = getContract();
+  const contract = getUserRegistryContract();
   const result = await account.execute({
     contractAddress: contract.address,
     entrypoint: 'add_comment',
@@ -155,7 +163,7 @@ export async function addComment(postId: number, content: string, account) {
 }
 
 export async function getComments(postId: number) {
-  const contract = getContract();
+  const contract = getUserRegistryContract();
   const result = await contract.get_comments(postId);
   console.log('--comments--', result)
   return result.map((comment: any) => ({
@@ -168,7 +176,7 @@ export async function getComments(postId: number) {
 }
 
 export async function getTokenBalance(address: string, account) {
-  const contract = getContract();
+  const contract = getUserRegistryContract();
   const balance = await account.execute({
     contractAddress: contract.address,
     entrypoint: 'get_token_balance',
@@ -178,7 +186,7 @@ export async function getTokenBalance(address: string, account) {
 }
 
 export async function transferTokens(to: string, amount: number, account) {
-  const contract = getContract();
+  const contract = getUserRegistryContract();
   const result = await account.execute({
     contractAddress: contract.address,
     entrypoint: 'transfer_tokens',
@@ -187,12 +195,23 @@ export async function transferTokens(to: string, amount: number, account) {
   return result;
 }
 
-export async function createNFTPost(hash: string, price: number, account) {
-  const contract = getContract();
+// Social Token specific functions
+export const getSocialTokenBalance = async (address: string, account) => {
+  const contract = getSocialTokenContract();
   const result = await account.execute({
     contractAddress: contract.address,
-    entrypoint: 'create_nft_post',
-    calldata: [hash, price]
+    entrypoint: 'balance_of',
+    calldata: [address]
   });
   return result;
-}
+};
+
+export const transferSocialTokens = async (recipient: string, amount: string, account) => {
+  const contract = getSocialTokenContract();
+  const result = await account.execute({
+    contractAddress: contract.address,
+    entrypoint: 'transfer',
+    calldata: [recipient, amount]
+  });
+  return result;
+};
