@@ -130,6 +130,13 @@ export async function createPost(ipfsHash: string, account)  {
   }
 }
 
+export async function isRegistered(address: string, account) {
+  const contract = getUserRegistryContract();
+  const result = await contract.is_registered();
+  return result;
+}
+
+
 export async function getPosts() {
   const contract = getUserRegistryContract();
   const result = await contract.get_posts();
